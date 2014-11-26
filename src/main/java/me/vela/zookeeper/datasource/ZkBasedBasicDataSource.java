@@ -3,9 +3,15 @@
  */
 package me.vela.zookeeper.datasource;
 
+import java.io.PrintWriter;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
+import javax.sql.DataSource;
 
 import me.vela.util.ObjectMapperUtils;
 import me.vela.zookeeper.AbstractZkBasedResource;
@@ -17,11 +23,21 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 /**
  * @author w.vela
  */
-public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSource> {
+public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSource> implements
+        DataSource {
 
     private final String monitorPath;
 
     private final PathChildrenCache cache;
+
+    {
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            logger.error("Ops.", e);
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * @param monitorPath
@@ -100,6 +116,78 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSou
             logger.error("fail to close old dataSource:{}", oldResource, e);
             return false;
         }
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.CommonDataSource#getLogWriter()
+     */
+    @Override
+    public PrintWriter getLogWriter() throws SQLException {
+        return getResource().getLogWriter();
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.CommonDataSource#setLogWriter(java.io.PrintWriter)
+     */
+    @Override
+    public void setLogWriter(PrintWriter out) throws SQLException {
+        getResource().setLogWriter(out);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.CommonDataSource#setLoginTimeout(int)
+     */
+    @Override
+    public void setLoginTimeout(int seconds) throws SQLException {
+        getResource().setLoginTimeout(seconds);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.CommonDataSource#getLoginTimeout()
+     */
+    @Override
+    public int getLoginTimeout() throws SQLException {
+        return getResource().getLoginTimeout();
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.CommonDataSource#getParentLogger()
+     */
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        return getResource().getParentLogger();
+    }
+
+    /* (non-Javadoc)
+     * @see java.sql.Wrapper#unwrap(java.lang.Class)
+     */
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        return (T) getResource().unwrap(iface);
+    }
+
+    /* (non-Javadoc)
+     * @see java.sql.Wrapper#isWrapperFor(java.lang.Class)
+     */
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return getResource().isWrapperFor(iface);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.DataSource#getConnection()
+     */
+    @Override
+    public Connection getConnection() throws SQLException {
+        return getResource().getConnection();
+    }
+
+    /* (non-Javadoc)
+     * @see javax.sql.DataSource#getConnection(java.lang.String, java.lang.String)
+     */
+    @Override
+    public Connection getConnection(String username, String password) throws SQLException {
+        return getResource().getConnection(username, password);
     }
 
 }

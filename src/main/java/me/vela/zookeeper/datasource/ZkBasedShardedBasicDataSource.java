@@ -36,6 +36,15 @@ public class ZkBasedShardedBasicDataSource extends
 
     private final PathChildrenCache cache;
 
+    {
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            logger.error("Ops.", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * @param monitorPath
      * @param cache
