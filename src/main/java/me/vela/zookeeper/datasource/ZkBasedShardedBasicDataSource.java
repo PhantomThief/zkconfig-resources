@@ -6,9 +6,12 @@ package me.vela.zookeeper.datasource;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.sql.DataSource;
 
 import me.vela.util.ObjectMapperUtils;
 import me.vela.util.WeakHolder;
@@ -17,9 +20,11 @@ import me.vela.zookeeper.AbstractZkBasedResource;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableRangeMap.Builder;
+import com.google.common.collect.MapMaker;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 
@@ -160,6 +165,26 @@ public class ZkBasedShardedBasicDataSource extends
         return allSuccess;
     }
 
+    public BasicDataSource getDataSource(int shard) {
+        RangeMap<Integer, BasicDataSource> thisObject = getResource();
+        return thisObject.get(shard % getShardSize(thisObject));
+    }
+
+    public BasicDataSource getDataSource(long shard) {
+        RangeMap<Integer, BasicDataSource> thisObject = getResource();
+        return thisObject.get((int) (shard % getShardSize(thisObject)));
+    }
+
+    public String processTableName(String rawTableName, int shard) {
+        RangeMap<Integer, BasicDataSource> thisObject = getResource();
+        return rawTableName + "_" + shard % getShardSize(thisObject);
+    }
+
+    public String processTableName(String rawTableName, long shard) {
+        RangeMap<Integer, BasicDataSource> thisObject = getResource();
+        return rawTableName + "_" + shard % getShardSize(thisObject);
+    }
+
     public int getShard(int shard) {
         RangeMap<Integer, BasicDataSource> thisObject = getResource();
         return shard % getShardSize(thisObject);
@@ -172,6 +197,17 @@ public class ZkBasedShardedBasicDataSource extends
 
     private static final <T> int getShardSize(RangeMap<Integer, T> rangeMap) {
         return rangeMap.span().upperEndpoint() + 1;
+    }
+
+    private static ConcurrentMap<DataSource, NamedParameterJdbcTemplate> jdbcTemplateCache = new MapMaker()
+            .concurrencyLevel(16).weakKeys().weakValues().makeMap();
+
+    public static final NamedParameterJdbcTemplate of(DataSource ds) {
+        return jdbcTemplateCache.computeIfAbsent(ds, d -> {
+            NamedParameterJdbcTemplate r = new NamedParameterJdbcTemplate(d);
+            r.setCacheLimit(0);
+            return r;
+        });
     }
 
 }
