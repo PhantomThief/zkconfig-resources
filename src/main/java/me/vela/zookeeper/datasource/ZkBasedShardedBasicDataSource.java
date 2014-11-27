@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -143,26 +144,25 @@ public class ZkBasedShardedBasicDataSource extends
         return cache;
     }
 
-    /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#doCleanup(java.lang.Object)
-     */
     @Override
-    protected boolean doCleanup(RangeMap<Integer, BasicDataSource> oldResource) {
-        boolean allSuccess = true;
-        for (BasicDataSource dataSource : oldResource.asMapOfRanges().values()) {
-            if (dataSource.isClosed()) {
-                continue;
-            }
-            try {
-                dataSource.close();
-                if (!dataSource.isClosed()) {
-                    allSuccess = false;
+    protected Predicate<RangeMap<Integer, BasicDataSource>> doCleanupOperation() {
+        return oldResource -> {
+            boolean allSuccess = true;
+            for (BasicDataSource dataSource : oldResource.asMapOfRanges().values()) {
+                if (dataSource.isClosed()) {
+                    continue;
                 }
-            } catch (SQLException e) {
-                logger.error("fail to close datasource:{}", dataSource, e);
+                try {
+                    dataSource.close();
+                    if (!dataSource.isClosed()) {
+                        allSuccess = false;
+                    }
+                } catch (SQLException e) {
+                    logger.error("fail to close datasource:{}", dataSource, e);
+                }
             }
-        }
-        return allSuccess;
+            return allSuccess;
+        };
     }
 
     public BasicDataSource getDataSource(int shard) {

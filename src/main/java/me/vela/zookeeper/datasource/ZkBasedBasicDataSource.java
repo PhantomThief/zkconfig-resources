@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 import javax.sql.DataSource;
@@ -101,21 +102,20 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSou
         return cache;
     }
 
-    /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#doCleanup(java.lang.Object)
-     */
     @Override
-    protected boolean doCleanup(BasicDataSource oldResource) {
-        if (oldResource.isClosed()) {
-            return true;
-        }
-        try {
-            oldResource.close();
-            return oldResource.isClosed();
-        } catch (SQLException e) {
-            logger.error("fail to close old dataSource:{}", oldResource, e);
-            return false;
-        }
+    protected Predicate<BasicDataSource> doCleanupOperation() {
+        return oldResource -> {
+            if (oldResource.isClosed()) {
+                return true;
+            }
+            try {
+                oldResource.close();
+                return oldResource.isClosed();
+            } catch (SQLException e) {
+                logger.error("fail to close old dataSource:{}", oldResource, e);
+                return false;
+            }
+        };
     }
 
     /* (non-Javadoc)

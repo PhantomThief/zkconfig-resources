@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.BaseStream;
 import java.util.stream.Collectors;
 
@@ -118,16 +119,15 @@ public class ZkBasedJedis extends AbstractZkBasedResource<ShardedJedisPool> {
         return cache;
     }
 
-    /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#doCleanup(java.lang.Object)
-     */
     @Override
-    protected boolean doCleanup(ShardedJedisPool oldResource) {
-        if (oldResource.isClosed()) {
-            return true;
-        }
-        oldResource.close();
-        return oldResource.isClosed();
+    protected Predicate<ShardedJedisPool> doCleanupOperation() {
+        return oldResource -> {
+            if (oldResource.isClosed()) {
+                return true;
+            }
+            oldResource.close();
+            return oldResource.isClosed();
+        };
     }
 
     public ShardedJedisPool getPool() {

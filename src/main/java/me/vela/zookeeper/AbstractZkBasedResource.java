@@ -3,6 +3,8 @@
  */
 package me.vela.zookeeper;
 
+import java.util.function.Predicate;
+
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent.Type;
@@ -21,8 +23,8 @@ public abstract class AbstractZkBasedResource<T> {
 
     protected abstract PathChildrenCache cache();
 
-    protected boolean doCleanup(T oldResource) {
-        return true;
+    protected Predicate<T> doCleanupOperation() {
+        return null;
     }
 
     protected long waitStopPeriod() {
@@ -68,6 +70,10 @@ public abstract class AbstractZkBasedResource<T> {
      */
     protected void cleanup(T oldResource) {
         if (oldResource != null) {
+            Predicate<T> doCleanupOperation = doCleanupOperation();
+            if (doCleanupOperation == null) {
+                return;
+            }
             Thread cleanupThread = new Thread("old [" + oldResource.getClass().getSimpleName()
                     + "] cleanup thread-[" + oldResource.hashCode() + "]") {
 
@@ -82,7 +88,7 @@ public abstract class AbstractZkBasedResource<T> {
                                 logger.error("Ops.", e);
                             }
                         }
-                        if (doCleanup(oldResource)) {
+                        if (doCleanupOperation.test(oldResource)) {
                             break;
                         }
                     } while (true);
