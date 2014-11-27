@@ -3,8 +3,6 @@
  */
 package me.vela.zookeeper;
 
-import java.util.concurrent.TimeUnit;
-
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent.Type;
@@ -23,10 +21,12 @@ public abstract class AbstractZkBasedResource<T> {
 
     protected abstract PathChildrenCache cache();
 
-    protected abstract boolean doCleanup(T oldResource);
+    protected boolean doCleanup(T oldResource) {
+        return true;
+    }
 
     protected long waitStopPeriod() {
-        return TimeUnit.MINUTES.toMillis(1);
+        return 0;
     }
 
     protected volatile T resource;
@@ -66,23 +66,27 @@ public abstract class AbstractZkBasedResource<T> {
     /**
      * @param oldResource
      */
-    private void cleanup(T oldResource) {
+    protected void cleanup(T oldResource) {
         if (oldResource != null) {
-            Thread cleanupThread = new Thread("old " + oldResource.getClass().getSimpleName()
-                    + " cleanup thread-" + oldResource.hashCode()) {
+            Thread cleanupThread = new Thread("old [" + oldResource.getClass().getSimpleName()
+                    + "] cleanup thread-[" + oldResource.hashCode() + "]") {
 
                 @Override
                 public void run() {
                     do {
-                        try {
-                            Thread.sleep(waitStopPeriod());
-                        } catch (InterruptedException e) {
-                            logger.error("Ops.", e);
+                        long waitStopPeriod = waitStopPeriod();
+                        if (waitStopPeriod > 0) {
+                            try {
+                                Thread.sleep(waitStopPeriod);
+                            } catch (InterruptedException e) {
+                                logger.error("Ops.", e);
+                            }
                         }
                         if (doCleanup(oldResource)) {
                             break;
                         }
                     } while (true);
+                    logger.info("successfully close old resource:{}", oldResource);
                 }
             };
             cleanupThread.start();
