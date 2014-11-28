@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import me.vela.util.ObjectMapperUtils;
 import me.vela.zookeeper.AbstractZkBasedResource;
 
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 
@@ -79,8 +78,6 @@ public class ZkBasedJedis extends AbstractZkBasedResource<ShardedJedisPool> {
             poolConfig.setMaxTotal(POOL_TOTAL_MAX_COUNT);
             poolConfig.setMaxIdle(POOL_MAX_COUNT);
             poolConfig.setBlockWhenExhausted(true);
-
-            BeanUtils.populate(poolConfig, configs);
 
             List<JedisShardInfo> shards = new ArrayList<JedisShardInfo>(configs.size());
             Splitter valueSplitter = Splitter.on(':');
