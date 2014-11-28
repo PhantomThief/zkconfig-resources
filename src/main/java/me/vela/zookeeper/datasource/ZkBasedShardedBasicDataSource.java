@@ -107,6 +107,7 @@ public class ZkBasedShardedBasicDataSource extends
                     int start = Integer.parseInt(matcher.group(1));
                     int end = Integer.parseInt(matcher.group(2));
                     resultBuilder.put(Range.closed(start, end), dataSource);
+                    postProcessNode(start, end, node);
                 } else {
                     logger.error("invalid shard config:{}", rawNode);
                 }
@@ -163,6 +164,9 @@ public class ZkBasedShardedBasicDataSource extends
             }
             return allSuccess;
         };
+    }
+
+    protected void postProcessNode(int shardStart, int shardEnd, Map<String, Object> node) {
     }
 
     public BasicDataSource getDataSource(int shard) {
