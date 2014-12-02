@@ -31,6 +31,10 @@ public abstract class AbstractZkBasedResource<T> {
         return 0;
     }
 
+    protected T emptyObject() {
+        return null;
+    }
+
     protected volatile T resource;
 
     protected T getResource() {
@@ -39,7 +43,7 @@ public abstract class AbstractZkBasedResource<T> {
                 if (resource == null) {
                     ChildData currentData = cache().getCurrentData(monitorPath());
                     if (currentData == null || currentData.getData() == null) {
-                        return null;
+                        return emptyObject();
                     }
                     resource = initObject(new String(currentData.getData()));
                     cache().getListenable().addListener(
@@ -54,6 +58,8 @@ public abstract class AbstractZkBasedResource<T> {
                                         oldResource = resource;
                                         if (data != null && data.getData() != null) {
                                             resource = initObject(new String(data.getData()));
+                                        } else {
+                                            resource = emptyObject();
                                         }
                                     }
                                     cleanup(oldResource);
