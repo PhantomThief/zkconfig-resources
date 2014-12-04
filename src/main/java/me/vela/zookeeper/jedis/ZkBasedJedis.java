@@ -63,6 +63,12 @@ public class ZkBasedJedis extends AbstractZkBasedNodeResource<ShardedJedisPool> 
     public ZkBasedJedis(String monitorPath, CuratorFramework client) {
         this.monitorPath = monitorPath;
         this.cache = new NodeCache(client, monitorPath);
+        try {
+            this.cache.start();
+            this.cache.rebuild();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /* (non-Javadoc)
