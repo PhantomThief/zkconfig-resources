@@ -13,7 +13,7 @@ import org.apache.curator.utils.ZKPaths;
 /**
  * @author w.vela
  */
-public abstract class AbstractZkBasedResource<T> {
+public abstract class AbstractZkBasedTreeResource<T> {
 
     protected final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(getClass());
 

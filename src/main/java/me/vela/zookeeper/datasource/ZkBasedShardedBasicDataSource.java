@@ -16,11 +16,12 @@ import javax.sql.DataSource;
 
 import me.vela.util.ObjectMapperUtils;
 import me.vela.util.WeakHolder;
-import me.vela.zookeeper.AbstractZkBasedResource;
+import me.vela.zookeeper.AbstractZkBasedNodeResource;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.google.common.collect.ImmutableRangeMap;
@@ -33,14 +34,14 @@ import com.google.common.collect.RangeMap;
  * @author w.vela
  */
 public class ZkBasedShardedBasicDataSource extends
-        AbstractZkBasedResource<RangeMap<Integer, BasicDataSource>> {
+        AbstractZkBasedNodeResource<RangeMap<Integer, BasicDataSource>> {
 
     private static WeakHolder<Pattern> shardPattern = WeakHolder.of(() -> Pattern
             .compile("(\\d+)-(\\d+)")); //(\d+)-(\d+)
 
     private final String monitorPath;
 
-    private final PathChildrenCache cache;
+    private final NodeCache cache;
 
     {
         try {
@@ -53,15 +54,15 @@ public class ZkBasedShardedBasicDataSource extends
 
     /**
      * @param monitorPath
-     * @param cache
+     * @param client
      */
-    public ZkBasedShardedBasicDataSource(String monitorPath, PathChildrenCache cache) {
+    public ZkBasedShardedBasicDataSource(String monitorPath, CuratorFramework client) {
         this.monitorPath = monitorPath;
-        this.cache = cache;
+        this.cache = new NodeCache(client, monitorPath);
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#initObject(java.lang.String)
+     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -130,18 +131,10 @@ public class ZkBasedShardedBasicDataSource extends
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#monitorPath()
+     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#cache()
      */
     @Override
-    protected String monitorPath() {
-        return monitorPath;
-    }
-
-    /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#cache()
-     */
-    @Override
-    protected PathChildrenCache cache() {
+    protected NodeCache cache() {
         return cache;
     }
 

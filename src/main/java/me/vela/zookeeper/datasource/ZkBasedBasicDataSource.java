@@ -15,21 +15,22 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 import me.vela.util.ObjectMapperUtils;
-import me.vela.zookeeper.AbstractZkBasedResource;
+import me.vela.zookeeper.AbstractZkBasedNodeResource;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.NodeCache;
 
 /**
  * @author w.vela
  */
-public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSource> implements
+public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDataSource> implements
         DataSource {
 
     private final String monitorPath;
 
-    private final PathChildrenCache cache;
+    private final NodeCache cache;
 
     {
         try {
@@ -42,15 +43,15 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSou
 
     /**
      * @param monitorPath
-     * @param cache
+     * @param client
      */
-    public ZkBasedBasicDataSource(String monitorPath, PathChildrenCache cache) {
+    public ZkBasedBasicDataSource(String monitorPath, CuratorFramework client) {
         this.monitorPath = monitorPath;
-        this.cache = cache;
+        this.cache = new NodeCache(client, monitorPath);
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#initObject(java.lang.String)
+     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @Override
     protected BasicDataSource initObject(String rawNode) {
@@ -87,18 +88,10 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedResource<BasicDataSou
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#monitorPath()
+     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#cache()
      */
     @Override
-    protected String monitorPath() {
-        return monitorPath;
-    }
-
-    /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#cache()
-     */
-    @Override
-    protected PathChildrenCache cache() {
+    protected NodeCache cache() {
         return cache;
     }
 

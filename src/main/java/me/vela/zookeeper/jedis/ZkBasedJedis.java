@@ -21,10 +21,11 @@ import java.util.stream.BaseStream;
 import java.util.stream.Collectors;
 
 import me.vela.util.ObjectMapperUtils;
-import me.vela.zookeeper.AbstractZkBasedResource;
+import me.vela.zookeeper.AbstractZkBasedNodeResource;
 
 import org.apache.commons.collections.MapUtils;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.NodeCache;
 
 import redis.clients.jedis.BinaryJedisCommands;
 import redis.clients.jedis.BinaryShardedJedis;
@@ -43,7 +44,7 @@ import com.google.common.collect.Iterators;
 /**
  * @author w.vela
  */
-public class ZkBasedJedis extends AbstractZkBasedResource<ShardedJedisPool> {
+public class ZkBasedJedis extends AbstractZkBasedNodeResource<ShardedJedisPool> {
 
     public static final int PARTITION_SIZE = 100;
 
@@ -53,19 +54,19 @@ public class ZkBasedJedis extends AbstractZkBasedResource<ShardedJedisPool> {
 
     private final String monitorPath;
 
-    private final PathChildrenCache cache;
+    private final NodeCache cache;
 
     /**
      * @param monitorPath
-     * @param cache
+     * @param client
      */
-    public ZkBasedJedis(String monitorPath, PathChildrenCache cache) {
+    public ZkBasedJedis(String monitorPath, CuratorFramework client) {
         this.monitorPath = monitorPath;
-        this.cache = cache;
+        this.cache = new NodeCache(client, monitorPath);
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#initObject(java.lang.String)
+     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @Override
     protected ShardedJedisPool initObject(String rawNode) {
@@ -101,18 +102,10 @@ public class ZkBasedJedis extends AbstractZkBasedResource<ShardedJedisPool> {
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#monitorPath()
+     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#cache()
      */
     @Override
-    protected String monitorPath() {
-        return monitorPath;
-    }
-
-    /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedResource#cache()
-     */
-    @Override
-    protected PathChildrenCache cache() {
+    protected NodeCache cache() {
         return cache;
     }
 
