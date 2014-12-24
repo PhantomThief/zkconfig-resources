@@ -372,6 +372,38 @@ public class ZkBasedJedis extends AbstractZkBasedNodeResource<ShardedJedisPool> 
         return result;
     }
 
+    public <K, V, T> Map<K, T> pipeline(Iterable<K> keys,
+            BiFunction<ShardedJedisPipeline, K, Response<V>> function, Function<V, T> decoder) {
+        int size;
+        if (keys != null && keys instanceof Collection) {
+            size = ((Collection<K>) keys).size();
+        } else {
+            size = 16;
+        }
+        Map<K, T> result = new HashMap<>(size);
+        if (keys != null) {
+            Iterable<List<K>> partition = Iterables.partition(keys, PARTITION_SIZE);
+            for (List<K> list : partition) {
+                ShardedJedisPool pool = getPool();
+                try (ShardedJedis shardedJedis = pool.getResource()) {
+                    ShardedJedisPipeline pipeline = shardedJedis.pipelined();
+                    Map<K, Response<V>> thisMap = new HashMap<>(list.size());
+                    for (K key : list) {
+                        Response<V> apply = function.apply(pipeline, key);
+                        thisMap.put(key, apply);
+                    }
+                    pipeline.sync();
+                    for (Entry<K, Response<V>> entry : thisMap.entrySet()) {
+                        if (entry.getValue() != null) {
+                            result.put(entry.getKey(), decoder.apply(entry.getValue().get()));
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      * 从redis里设置的bitset如果要读到Java里，一定要用这个，因为redis的存储和java的大小端模式不一样
      * 
