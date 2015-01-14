@@ -1,11 +1,10 @@
 /**
  * 
  */
-package me.vela.util;
+package com.github.phantomthief.util;
 
 import java.lang.ref.WeakReference;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 
 /**
  * @author w.vela
@@ -39,22 +38,4 @@ public final class WeakHolder<T> {
         }
         return result;
     }
-
-    public static void main(String[] args) {
-        WeakHolder<Pattern> p1 = WeakHolder.of(() -> Pattern.compile("abc"));
-        System.out.println(p1.get());
-        System.out.println(p1.get());
-        System.out.println(p1.get());
-        System.out.println("gc.");
-        System.gc();
-        System.out.println(p1.get());
-        System.out.println(p1.get());
-        System.out.println(p1.get());
-        System.out.println("gc.");
-        System.gc();
-        System.out.println(p1.get());
-        System.out.println(p1.get());
-        System.out.println(p1.get());
-    }
-
 }

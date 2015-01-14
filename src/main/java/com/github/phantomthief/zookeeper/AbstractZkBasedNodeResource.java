@@ -1,7 +1,7 @@
 /**
  * 
  */
-package me.vela.zookeeper;
+package com.github.phantomthief.zookeeper;
 
 import java.util.function.Predicate;
 

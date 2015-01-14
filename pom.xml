@@ -3,16 +3,40 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>me.vela</groupId>
+	<groupId>com.github.phantomthief</groupId>
 	<artifactId>zkconfig-resources</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
+
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>9</version>
+	</parent>
+
+	<name>zkconfig-resources</name>
+	<description>A ZooKeeper based configuration resources holder</description>
+
+	<url>https://github.com/PhantomThief/zkconfig-resources</url>
 
 	<developers>
 		<developer>
 			<name>w.vela</name>
-			<email>boywang004@hotmail.com</email>
 		</developer>
 	</developers>
+
+	<licenses>
+		<license>
+			<name>The Artistic License 2.0</name>
+			<url>http://www.perlfoundation.org/artistic_license_2_0</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:https://github.com/PhantomThief/zkconfig-resources.git</connection>
+		<url>https://github.com/PhantomThief/zkconfig-resources.git</url>
+		<developerConnection>scm:git:https://github.com/PhantomThief/zkconfig-resources.git</developerConnection>
+	</scm>
 
 	<dependencies>
 		<dependency>
@@ -33,7 +57,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.9</version>
+			<version>1.7.10</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -95,6 +119,44 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<configuration>
+					<additionalparam>-Xdoclint:none</additionalparam>
+				</configuration>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.5</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>sonatype-nexus-staging</serverId>
+					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>true</autoReleaseAfterClose>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
+
+	<distributionManagement>
+		<snapshotRepository>
+			<id>sonatype-nexus-snapshots</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
 </project>

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package me.vela.zookeeper.datasource;
+package com.github.phantomthief.zookeeper.datasource;
 
 import java.sql.SQLException;
 import java.util.Map;
@@ -14,16 +14,15 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
-import me.vela.util.ObjectMapperUtils;
-import me.vela.util.WeakHolder;
-import me.vela.zookeeper.AbstractZkBasedNodeResource;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import com.github.phantomthief.util.ObjectMapperUtils;
+import com.github.phantomthief.util.WeakHolder;
+import com.github.phantomthief.zookeeper.AbstractZkBasedNodeResource;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableRangeMap.Builder;
 import com.google.common.collect.MapMaker;
@@ -68,7 +67,7 @@ public class ZkBasedShardedBasicDataSource extends
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
+     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -137,7 +136,7 @@ public class ZkBasedShardedBasicDataSource extends
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#cache()
+     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#cache()
      */
     @Override
     protected NodeCache cache() {

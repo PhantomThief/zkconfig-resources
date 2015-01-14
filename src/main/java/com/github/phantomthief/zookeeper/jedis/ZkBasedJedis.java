@@ -1,7 +1,7 @@
 /**
  * 
  */
-package me.vela.zookeeper.jedis;
+package com.github.phantomthief.zookeeper.jedis;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -20,9 +20,6 @@ import java.util.function.Predicate;
 import java.util.stream.BaseStream;
 import java.util.stream.Collectors;
 
-import me.vela.util.ObjectMapperUtils;
-import me.vela.zookeeper.AbstractZkBasedNodeResource;
-
 import org.apache.commons.collections.MapUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
@@ -37,6 +34,8 @@ import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPipeline;
 import redis.clients.jedis.ShardedJedisPool;
 
+import com.github.phantomthief.util.ObjectMapperUtils;
+import com.github.phantomthief.zookeeper.AbstractZkBasedNodeResource;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -72,7 +71,7 @@ public class ZkBasedJedis extends AbstractZkBasedNodeResource<ShardedJedisPool> 
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
+     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @Override
     protected ShardedJedisPool initObject(String rawNode) {
@@ -108,7 +107,7 @@ public class ZkBasedJedis extends AbstractZkBasedNodeResource<ShardedJedisPool> 
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#cache()
+     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#cache()
      */
     @Override
     protected NodeCache cache() {

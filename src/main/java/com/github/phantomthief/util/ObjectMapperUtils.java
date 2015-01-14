@@ -1,7 +1,7 @@
 /**
  * 
  */
-package me.vela.util;
+package com.github.phantomthief.util;
 
 import java.util.Collection;
 import java.util.Map;

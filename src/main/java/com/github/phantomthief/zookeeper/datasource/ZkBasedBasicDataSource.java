@@ -1,7 +1,7 @@
 /**
  * 
  */
-package me.vela.zookeeper.datasource;
+package com.github.phantomthief.zookeeper.datasource;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -14,13 +14,13 @@ import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
-import me.vela.util.ObjectMapperUtils;
-import me.vela.zookeeper.AbstractZkBasedNodeResource;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
+
+import com.github.phantomthief.util.ObjectMapperUtils;
+import com.github.phantomthief.zookeeper.AbstractZkBasedNodeResource;
 
 /**
  * @author w.vela
@@ -57,7 +57,7 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
+     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @Override
     protected BasicDataSource initObject(String rawNode) {
@@ -94,7 +94,7 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
     }
 
     /* (non-Javadoc)
-     * @see me.vela.zookeeper.AbstractZkBasedTreeResource#cache()
+     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#cache()
      */
     @Override
     protected NodeCache cache() {
