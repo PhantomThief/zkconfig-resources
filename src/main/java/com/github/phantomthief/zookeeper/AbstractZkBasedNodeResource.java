@@ -91,6 +91,9 @@ public abstract class AbstractZkBasedNodeResource<T> {
                     logger.info("successfully close old resource:{}", oldResource);
                 }
             };
+            cleanupThread.setUncaughtExceptionHandler((t, e) -> {
+                logger.error("fail to cleanup resource.", e);
+            });
             cleanupThread.start();
         }
     }
