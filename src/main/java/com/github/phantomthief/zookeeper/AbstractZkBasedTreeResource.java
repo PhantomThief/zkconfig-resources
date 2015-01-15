@@ -3,6 +3,8 @@
  */
 package com.github.phantomthief.zookeeper;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.function.Predicate;
 
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -13,7 +15,7 @@ import org.apache.curator.utils.ZKPaths;
 /**
  * @author w.vela
  */
-public abstract class AbstractZkBasedTreeResource<T> {
+public abstract class AbstractZkBasedTreeResource<T> implements Closeable {
 
     protected final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(getClass());
 
@@ -37,9 +39,11 @@ public abstract class AbstractZkBasedTreeResource<T> {
 
     protected volatile T resource;
 
+    private final Object lock = new Object();
+
     protected T getResource() {
         if (resource == null) {
-            synchronized (this) {
+            synchronized (lock) {
                 if (resource == null) {
                     ChildData currentData = cache().getCurrentData(monitorPath());
                     if (currentData == null || currentData.getData() == null) {
@@ -53,7 +57,7 @@ public abstract class AbstractZkBasedTreeResource<T> {
                                                 .equals(monitorPath())) {
 
                                     T oldResource = null;
-                                    synchronized (this) {
+                                    synchronized (lock) {
                                         ChildData data = cache().getCurrentData(monitorPath());
                                         oldResource = resource;
                                         if (data != null && data.getData() != null) {
@@ -104,4 +108,15 @@ public abstract class AbstractZkBasedTreeResource<T> {
             cleanupThread.start();
         }
     }
+
+    @Override
+    public void close() throws IOException {
+        synchronized (lock) {
+            Predicate<T> cleanOp;
+            if (resource != null && (cleanOp = doCleanupOperation()) != null) {
+                cleanOp.test(resource);
+            }
+        }
+    }
+
 }

@@ -3,6 +3,7 @@
  */
 package com.github.phantomthief.thrift.example;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +20,10 @@ import com.github.phantomthief.zookeeper.jedis.ZkBasedJedis;
  */
 public class JedisClientMain {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         try (CuratorFramework client = CuratorFrameworkFactory.newClient("127.0.0.1:2181",
-                new ExponentialBackoffRetry(10000, 3))) {
-            client.start(); // init a curator
-
-            ZkBasedJedis jedis = new ZkBasedJedis("/jedis/clientConfig", client); // declare a jedis client using a config from zk's node. 
+                new ExponentialBackoffRetry(10000, 3));
+                ZkBasedJedis jedis = new ZkBasedJedis("/jedis/clientConfig", client);) { // declare a jedis client using a config from zk's node.
 
             jedis.get().set("key1", "value1"); // exec jedis commands, don't worry about returning the connection back to the pool.
             System.out.println("get key:" + jedis.get().get("key1")); // exec jedis commands.

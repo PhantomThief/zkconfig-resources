@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -57,6 +58,9 @@ public class ZkBasedShardedBasicDataSource extends
      */
     public ZkBasedShardedBasicDataSource(String monitorPath, CuratorFramework client) {
         this.monitorPath = monitorPath;
+        if (client.getState() != CuratorFrameworkState.STARTED) {
+            client.start();
+        }
         this.cache = new NodeCache(client, monitorPath);
         try {
             this.cache.start();
