@@ -17,23 +17,16 @@ import javax.sql.DataSource;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.framework.recipes.cache.NodeCache;
 
 import com.github.phantomthief.util.ObjectMapperUtils;
-import com.github.phantomthief.zookeeper.AbstractZkBasedNodeResource;
+import com.github.phantomthief.zookeeper.AbstractLazyZkBasedNodeResource;
+import com.google.common.base.Supplier;
 
 /**
  * @author w.vela
  */
-public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDataSource> implements
-        DataSource {
-
-    private final String monitorPath;
-
-    private final CuratorFramework client;
-
-    private volatile NodeCache cache;
+public class ZkBasedBasicDataSource extends AbstractLazyZkBasedNodeResource<BasicDataSource>
+        implements DataSource {
 
     {
         try {
@@ -49,8 +42,15 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
      * @param client
      */
     public ZkBasedBasicDataSource(String monitorPath, CuratorFramework client) {
-        this.monitorPath = monitorPath;
-        this.client = client;
+        super(monitorPath, client);
+    }
+
+    /**
+     * @param monitorPath
+     * @param clientFactory
+     */
+    public ZkBasedBasicDataSource(String monitorPath, Supplier<CuratorFramework> clientFactory) {
+        super(monitorPath, clientFactory);
     }
 
     /* (non-Javadoc)
@@ -88,33 +88,6 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
             logger.error("Ops, fail to build dataSource:{}.", monitorPath, e);
             throw new RuntimeException(e);
         }
-    }
-
-    /* (non-Javadoc)
-     * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#cache()
-     */
-    @Override
-    protected NodeCache cache() {
-        if (cache == null) {
-            synchronized (this) {
-                if (cache == null) {
-                    synchronized (client) {
-                        if (client.getState() != CuratorFrameworkState.STARTED) {
-                            client.start();
-                        }
-                    }
-                    NodeCache buildingCache = new NodeCache(client, monitorPath);
-                    try {
-                        buildingCache.start();
-                        buildingCache.rebuild();
-                        this.cache = buildingCache;
-                    } catch (Throwable e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
-        return cache;
     }
 
     @Override
