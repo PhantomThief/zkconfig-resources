@@ -74,27 +74,23 @@ public abstract class AbstractZkBasedNodeResource<T> implements Closeable {
             if (doCleanupOperation == null) {
                 return;
             }
-            Thread cleanupThread = new Thread("old [" + oldResource.getClass().getSimpleName()
-                    + "] cleanup thread-[" + oldResource.hashCode() + "]") {
-
-                @Override
-                public void run() {
-                    do {
-                        long waitStopPeriod = waitStopPeriod();
-                        if (waitStopPeriod > 0) {
-                            try {
-                                Thread.sleep(waitStopPeriod);
-                            } catch (InterruptedException e) {
-                                logger.error("Ops.", e);
-                            }
+            Thread cleanupThread = new Thread(() -> {
+                do {
+                    long waitStopPeriod = waitStopPeriod();
+                    if (waitStopPeriod > 0) {
+                        try {
+                            Thread.sleep(waitStopPeriod);
+                        } catch (InterruptedException e) {
+                            logger.error("Ops.", e);
                         }
-                        if (doCleanupOperation.test(oldResource)) {
-                            break;
-                        }
-                    } while (true);
-                    logger.info("successfully close old resource:{}", oldResource);
-                }
-            };
+                    }
+                    if (doCleanupOperation.test(oldResource)) {
+                        break;
+                    }
+                } while (true);
+                logger.info("successfully close old resource:{}", oldResource);
+            }, "old [" + oldResource.getClass().getSimpleName() + "] cleanup thread-["
+                    + oldResource.hashCode() + "]");
             cleanupThread.setUncaughtExceptionHandler((t, e) -> {
                 logger.error("fail to cleanup resource.", e);
             });

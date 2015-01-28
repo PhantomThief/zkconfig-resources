@@ -31,7 +31,9 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
 
     private final String monitorPath;
 
-    private final NodeCache cache;
+    private final CuratorFramework client;
+
+    private volatile NodeCache cache;
 
     {
         try {
@@ -48,16 +50,7 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
      */
     public ZkBasedBasicDataSource(String monitorPath, CuratorFramework client) {
         this.monitorPath = monitorPath;
-        if (client.getState() != CuratorFrameworkState.STARTED) {
-            client.start();
-        }
-        this.cache = new NodeCache(client, monitorPath);
-        try {
-            this.cache.start();
-            this.cache.rebuild();
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+        this.client = client;
     }
 
     /* (non-Javadoc)
@@ -102,6 +95,25 @@ public class ZkBasedBasicDataSource extends AbstractZkBasedNodeResource<BasicDat
      */
     @Override
     protected NodeCache cache() {
+        if (cache == null) {
+            synchronized (this) {
+                if (cache == null) {
+                    synchronized (client) {
+                        if (client.getState() != CuratorFrameworkState.STARTED) {
+                            client.start();
+                        }
+                    }
+                    NodeCache buildingCache = new NodeCache(client, monitorPath);
+                    try {
+                        buildingCache.start();
+                        buildingCache.rebuild();
+                        this.cache = buildingCache;
+                    } catch (Throwable e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
         return cache;
     }
 
