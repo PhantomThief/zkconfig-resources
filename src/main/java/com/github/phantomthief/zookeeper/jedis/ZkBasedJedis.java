@@ -25,6 +25,7 @@ import org.apache.curator.framework.CuratorFramework;
 
 import redis.clients.jedis.BinaryJedisCommands;
 import redis.clients.jedis.BinaryShardedJedis;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisShardInfo;
@@ -37,8 +38,10 @@ import com.github.phantomthief.util.ObjectMapperUtils;
 import com.github.phantomthief.zookeeper.AbstractLazyZkBasedNodeResource;
 import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Multimap;
 
 /**
  * @author w.vela
@@ -390,6 +393,19 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
             }
         }
         return result;
+    }
+
+    public Multimap<String, String> keys(String keyPattern) {
+        ShardedJedisPool r = getResource();
+        try (ShardedJedis shardedJedis = r.getResource()) {
+            Multimap<String, String> result = HashMultimap.create();
+            Collection<Jedis> allShards = shardedJedis.getAllShards();
+            for (Jedis jedis : allShards) {
+                result.putAll(jedis.getClient().getHost() + ":" + jedis.getClient().getPort(),
+                        jedis.keys(keyPattern));
+            }
+            return result;
+        }
     }
 
     /**
