@@ -59,8 +59,8 @@ public abstract class AbstractLazyZkBasedNodeResource<T> extends AbstractZkBased
                     if (client != null) {
                         if (client.getState() != CuratorFrameworkState.STARTED) {
                             client.start();
-                            thisClient = client;
                         }
+                        thisClient = client;
                     }
                     if (clientFactory != null) {
                         thisClient = clientFactory.get();
