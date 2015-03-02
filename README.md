@@ -13,7 +13,7 @@ A ZooKeeper config based MySQL and jedis connection pool wrapper.
 <dependency>
     <groupId>com.github.phantomthief</groupId>
     <artifactId>zkconfig-resources</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
