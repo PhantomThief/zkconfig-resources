@@ -28,15 +28,6 @@ import com.google.common.base.Supplier;
 public class ZkBasedBasicDataSource extends AbstractLazyZkBasedNodeResource<BasicDataSource>
         implements DataSource {
 
-    {
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            logger.error("Ops.", e);
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * @param monitorPath
      * @param client
@@ -79,6 +70,7 @@ public class ZkBasedBasicDataSource extends AbstractLazyZkBasedNodeResource<Basi
             dataSource.setTestOnBorrow(true);
             dataSource.setTestWhileIdle(true);
             dataSource.setValidationQuery("/* ping */");
+            dataSource.setDriverClassName("com.mysql.jdbc.Driver");
 
             BeanUtils.populate(dataSource, node);
 
