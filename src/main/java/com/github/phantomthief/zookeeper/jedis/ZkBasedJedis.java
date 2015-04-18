@@ -23,6 +23,15 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.MapUtils;
 import org.apache.curator.framework.CuratorFramework;
 
+import com.github.phantomthief.util.ObjectMapperUtils;
+import com.github.phantomthief.zookeeper.AbstractLazyZkBasedNodeResource;
+import com.google.common.base.Splitter;
+import com.google.common.base.Supplier;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Multimap;
+
 import redis.clients.jedis.BinaryJedisCommands;
 import redis.clients.jedis.BinaryShardedJedis;
 import redis.clients.jedis.Jedis;
@@ -33,15 +42,6 @@ import redis.clients.jedis.Response;
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPipeline;
 import redis.clients.jedis.ShardedJedisPool;
-
-import com.github.phantomthief.util.ObjectMapperUtils;
-import com.github.phantomthief.zookeeper.AbstractLazyZkBasedNodeResource;
-import com.google.common.base.Splitter;
-import com.google.common.base.Supplier;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Multimap;
 
 /**
  * @author w.vela
@@ -121,17 +121,37 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
         return getResource();
     }
 
+    private volatile JedisCommands proxiedCache;
+
     public JedisCommands get() {
-        ShardedJedisPool thisPool = getPool();
-        return (JedisCommands) Proxy.newProxyInstance(ShardedJedis.class.getClassLoader(),
-                ShardedJedis.class.getInterfaces(), new PoolableJedisCommands(thisPool));
+        if (proxiedCache == null) {
+            synchronized (this) {
+                if (proxiedCache == null) {
+                    ShardedJedisPool thisPool = getPool();
+                    proxiedCache = (JedisCommands) Proxy.newProxyInstance(
+                            ShardedJedis.class.getClassLoader(), ShardedJedis.class.getInterfaces(),
+                            new PoolableJedisCommands(thisPool));
+                }
+            }
+        }
+        return proxiedCache;
     }
 
+    private volatile BinaryJedisCommands proxiedBinaryCache;
+
     public BinaryJedisCommands getBinary() {
-        ShardedJedisPool thisPool = getPool();
-        return (BinaryJedisCommands) Proxy.newProxyInstance(
-                BinaryShardedJedis.class.getClassLoader(),
-                BinaryShardedJedis.class.getInterfaces(), new PoolableJedisCommands(thisPool));
+        if (proxiedBinaryCache == null) {
+            synchronized (this) {
+                if (proxiedBinaryCache == null) {
+                    ShardedJedisPool thisPool = getPool();
+                    proxiedBinaryCache = (BinaryJedisCommands) Proxy.newProxyInstance(
+                            BinaryShardedJedis.class.getClassLoader(),
+                            BinaryShardedJedis.class.getInterfaces(),
+                            new PoolableJedisCommands(thisPool));
+                }
+            }
+        }
+        return proxiedBinaryCache;
     }
 
     public byte[] getToBytes(String key) {
@@ -278,12 +298,9 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
     public <K, V> void mset(Map<K, V> map, Function<K, String> keyGenerator,
             Function<V, String> codec, int expireSeconds) {
         if (MapUtils.isNotEmpty(map)) {
-            Map<String, String> dataMap = map
-                    .entrySet()
-                    .stream()
-                    .collect(
-                            Collectors.toMap(entry -> keyGenerator.apply(entry.getKey()),
-                                    entry -> codec.apply(entry.getValue())));
+            Map<String, String> dataMap = map.entrySet().stream()
+                    .collect(Collectors.toMap(entry -> keyGenerator.apply(entry.getKey()),
+                            entry -> codec.apply(entry.getValue())));
             for (List<Entry<String, String>> list : Iterables.partition(dataMap.entrySet(),
                     PARTITION_SIZE)) {
                 ShardedJedisPool pool = getPool();
