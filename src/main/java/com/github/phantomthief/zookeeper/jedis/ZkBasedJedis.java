@@ -25,6 +25,7 @@ import org.apache.curator.framework.CuratorFramework;
 
 import com.github.phantomthief.util.ObjectMapperUtils;
 import com.github.phantomthief.zookeeper.AbstractLazyZkBasedNodeResource;
+import com.github.phantomthief.zookeeper.jedis.ZkBasedJedis.JedisCache;
 import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
@@ -46,7 +47,22 @@ import redis.clients.jedis.ShardedJedisPool;
 /**
  * @author w.vela
  */
-public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPool> {
+public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<JedisCache> {
+
+    public static final class JedisCache {
+
+        private final ShardedJedisPool pool;
+        private volatile JedisCommands proxiedCommands;
+        private volatile BinaryJedisCommands binaryProxiedCommands;
+
+        /**
+         * @param pool
+         */
+        public JedisCache(ShardedJedisPool pool) {
+            this.pool = pool;
+        }
+
+    }
 
     public static final int PARTITION_SIZE = 100;
 
@@ -74,7 +90,7 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
      * @see com.github.phantomthief.zookeeper.AbstractZkBasedTreeResource#initObject(java.lang.String)
      */
     @Override
-    protected ShardedJedisPool initObject(String rawNode) {
+    protected JedisCache initObject(String rawNode) {
         try {
             Map<String, String> configs = ObjectMapperUtils.fromJSON(rawNode, Map.class,
                     String.class, String.class);
@@ -99,7 +115,7 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
                 shards.add(jsi);
             }
             logger.info("build jedis for {}, {}", monitorPath, shards);
-            return new ShardedJedisPool(poolConfig, shards);
+            return new JedisCache(new ShardedJedisPool(poolConfig, shards));
         } catch (Throwable e) {
             logger.error("Ops. fail to get jedis pool:{}", monitorPath, e);
             throw new RuntimeException(e);
@@ -107,31 +123,50 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
     }
 
     @Override
-    protected Predicate<ShardedJedisPool> doCleanupOperation() {
+    protected Predicate<JedisCache> doCleanupOperation() {
         return oldResource -> {
-            if (oldResource.isClosed()) {
+            if (oldResource.pool.isClosed()) {
                 return true;
             }
-            oldResource.close();
-            return oldResource.isClosed();
+            oldResource.pool.close();
+            return oldResource.pool.isClosed();
         };
     }
 
     public ShardedJedisPool getPool() {
-        return getResource();
+        return getResource().pool;
     }
 
     public JedisCommands get() {
-        ShardedJedisPool thisPool = getPool();
-        return (JedisCommands) Proxy.newProxyInstance(ShardedJedis.class.getClassLoader(),
-                ShardedJedis.class.getInterfaces(), new PoolableJedisCommands(thisPool));
+        JedisCache cache = getResource();
+        if (cache.proxiedCommands == null) {
+            synchronized (cache) {
+                if (cache.proxiedCommands == null) {
+                    ShardedJedisPool thisPool = cache.pool;
+                    cache.proxiedCommands = (JedisCommands) Proxy.newProxyInstance(
+                            ShardedJedis.class.getClassLoader(), ShardedJedis.class.getInterfaces(),
+                            new PoolableJedisCommands(thisPool));
+                }
+            }
+        }
+        return cache.proxiedCommands;
     }
 
     public BinaryJedisCommands getBinary() {
-        ShardedJedisPool thisPool = getPool();
-        return (BinaryJedisCommands) Proxy.newProxyInstance(
-                BinaryShardedJedis.class.getClassLoader(), BinaryShardedJedis.class.getInterfaces(),
-                new PoolableJedisCommands(thisPool));
+        JedisCache cache = getResource();
+        if (cache.binaryProxiedCommands == null) {
+            synchronized (cache) {
+                if (cache.binaryProxiedCommands == null) {
+                    ShardedJedisPool thisPool = getPool();
+                    cache.binaryProxiedCommands = (BinaryJedisCommands) Proxy.newProxyInstance(
+                            BinaryShardedJedis.class.getClassLoader(),
+                            BinaryShardedJedis.class.getInterfaces(),
+                            new PoolableJedisCommands(thisPool));
+
+                }
+            }
+        }
+        return cache.binaryProxiedCommands;
     }
 
     public byte[] getToBytes(String key) {
@@ -393,7 +428,7 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
     }
 
     public Multimap<String, String> keys(String keyPattern) {
-        ShardedJedisPool r = getResource();
+        ShardedJedisPool r = getResource().pool;
         try (ShardedJedis shardedJedis = r.getResource()) {
             Multimap<String, String> result = HashMultimap.create();
             Collection<Jedis> allShards = shardedJedis.getAllShards();
