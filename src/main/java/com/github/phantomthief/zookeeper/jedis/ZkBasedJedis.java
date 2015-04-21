@@ -121,37 +121,17 @@ public class ZkBasedJedis extends AbstractLazyZkBasedNodeResource<ShardedJedisPo
         return getResource();
     }
 
-    private volatile JedisCommands proxiedCache;
-
     public JedisCommands get() {
-        if (proxiedCache == null) {
-            synchronized (this) {
-                if (proxiedCache == null) {
-                    ShardedJedisPool thisPool = getPool();
-                    proxiedCache = (JedisCommands) Proxy.newProxyInstance(
-                            ShardedJedis.class.getClassLoader(), ShardedJedis.class.getInterfaces(),
-                            new PoolableJedisCommands(thisPool));
-                }
-            }
-        }
-        return proxiedCache;
+        ShardedJedisPool thisPool = getPool();
+        return (JedisCommands) Proxy.newProxyInstance(ShardedJedis.class.getClassLoader(),
+                ShardedJedis.class.getInterfaces(), new PoolableJedisCommands(thisPool));
     }
 
-    private volatile BinaryJedisCommands proxiedBinaryCache;
-
     public BinaryJedisCommands getBinary() {
-        if (proxiedBinaryCache == null) {
-            synchronized (this) {
-                if (proxiedBinaryCache == null) {
-                    ShardedJedisPool thisPool = getPool();
-                    proxiedBinaryCache = (BinaryJedisCommands) Proxy.newProxyInstance(
-                            BinaryShardedJedis.class.getClassLoader(),
-                            BinaryShardedJedis.class.getInterfaces(),
-                            new PoolableJedisCommands(thisPool));
-                }
-            }
-        }
-        return proxiedBinaryCache;
+        ShardedJedisPool thisPool = getPool();
+        return (BinaryJedisCommands) Proxy.newProxyInstance(
+                BinaryShardedJedis.class.getClassLoader(), BinaryShardedJedis.class.getInterfaces(),
+                new PoolableJedisCommands(thisPool));
     }
 
     public byte[] getToBytes(String key) {
