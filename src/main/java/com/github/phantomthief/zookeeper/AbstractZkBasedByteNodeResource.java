@@ -9,6 +9,7 @@ import java.util.function.Predicate;
 
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.zookeeper.data.Stat;
 
 /**
  * @author w.vela
@@ -17,7 +18,7 @@ public abstract class AbstractZkBasedByteNodeResource<T> implements Closeable {
 
     protected final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(getClass());
 
-    protected abstract T initObject(byte[] zkValue);
+    protected abstract T initObject(byte[] zkValue, Stat stat);
 
     protected abstract NodeCache cache();
 
@@ -45,14 +46,14 @@ public abstract class AbstractZkBasedByteNodeResource<T> implements Closeable {
                     if (currentData == null || currentData.getData() == null) {
                         return emptyObject();
                     }
-                    resource = initObject(currentData.getData());
+                    resource = initObject(currentData.getData(), currentData.getStat());
                     cache().getListenable().addListener(() -> {
                         T oldResource = null;
                         synchronized (lock) {
                             ChildData data = cache().getCurrentData();
                             oldResource = resource;
                             if (data != null && data.getData() != null) {
-                                resource = initObject(data.getData());
+                                resource = initObject(data.getData(), data.getStat());
                             } else {
                                 resource = emptyObject();
                             }
