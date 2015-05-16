@@ -16,13 +16,15 @@ import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author w.vela
  */
 public class ZkBasedNodeResource<T> implements Closeable {
 
-    private final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(getClass());
+    private static Logger logger = LoggerFactory.getLogger(ZkBasedNodeResource.class);
 
     private final BiFunction<byte[], Stat, T> factory;
     private final Supplier<NodeCache> cacheFactory;
@@ -118,7 +120,7 @@ public class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
-    public final class Builder<E> {
+    public static final class Builder<E> {
 
         private BiFunction<byte[], Stat, E> factory;
         private Supplier<NodeCache> cacheFactory;
@@ -227,5 +229,9 @@ public class ZkBasedNodeResource<T> implements Closeable {
                 });
             }
         }
+    }
+
+    public static final <T> Builder<T> newBuilder() {
+        return new Builder<>();
     }
 }
