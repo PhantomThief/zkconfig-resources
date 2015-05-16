@@ -1,9 +1,11 @@
 zkconfig-resources
 =======================
 
-A ZooKeeper config based object wrapper.
+ZooKeeper节点缓存，基于CuratorFramework封装
 
-* jdk 1.8 only
+* 节点变更时，旧资源清理机制
+* 强类型泛型支持
+* 只支持Java8
 
 ## Get Started
 
@@ -13,4 +15,14 @@ A ZooKeeper config based object wrapper.
     <artifactId>zkconfig-resources</artifactId>
     <version>1.1.0</version>
 </dependency>
+```
+
+```Java
+ZkBasedNodeResource<ShardedJedisPool> node = ZkBasedNodeResource.<ShardedJedisPool> newBuilder() //
+                .withCacheFactory(ZKPaths.makePath("/redis", monitorPath), ZkClientHolder::get) //
+                .withStringFactory(this::initObject) //
+                .withCleanup(ShardedJedisPool::close) //
+                .build();
+
+ShardedJedisPool pool = node.get();                
 ```
