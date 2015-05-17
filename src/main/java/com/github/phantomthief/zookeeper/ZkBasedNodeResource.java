@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author w.vela
  */
-public class ZkBasedNodeResource<T> implements Closeable {
+public final class ZkBasedNodeResource<T> implements Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZkBasedNodeResource.class);
 
@@ -49,7 +49,7 @@ public class ZkBasedNodeResource<T> implements Closeable {
         this.emptyObject = emptyObject;
     }
 
-    protected volatile T resource;
+    private volatile T resource;
 
     public T get() {
         if (resource == null) {
@@ -83,8 +83,8 @@ public class ZkBasedNodeResource<T> implements Closeable {
     /**
      * @param oldResource
      */
-    protected void cleanup(T oldResource) {
-        if (oldResource != null) {
+    private void cleanup(T oldResource) {
+        if (oldResource != null && oldResource != emptyObject) {
             if (cleanup == null) {
                 return;
             }
@@ -102,8 +102,9 @@ public class ZkBasedNodeResource<T> implements Closeable {
                     }
                 } while (true);
                 logger.info("successfully close old resource:{}", oldResource);
-            } , "old [" + oldResource.getClass().getSimpleName() + "] cleanup thread-["
-                    + oldResource.hashCode() + "]");
+            });
+            cleanupThread.setName("old [" + oldResource.getClass().getSimpleName()
+                    + "] cleanup thread-[" + cleanupThread.getId() + "]");
             cleanupThread.setUncaughtExceptionHandler((t, e) -> {
                 logger.error("fail to cleanup resource.", e);
             });
@@ -114,7 +115,7 @@ public class ZkBasedNodeResource<T> implements Closeable {
     @Override
     public void close() throws IOException {
         synchronized (ZkBasedNodeResource.this) {
-            if (resource != null && cleanup != null) {
+            if (resource != null && resource != emptyObject && cleanup != null) {
                 cleanup.test(resource);
             }
         }
