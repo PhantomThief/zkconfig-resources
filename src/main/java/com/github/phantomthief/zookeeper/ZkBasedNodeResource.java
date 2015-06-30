@@ -171,7 +171,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     buildingCache.rebuild();
                     return buildingCache;
                 } catch (Throwable e) {
-                    throw new RuntimeException(e);
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    } else {
+                        throw new RuntimeException(e);
+                    }
                 }
             };
             return this;
@@ -224,7 +228,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         try {
                             ((Closeable) t).close();
                         } catch (Exception e) {
-                            throw new RuntimeException();
+                            if (e instanceof RuntimeException) {
+                                throw (RuntimeException) e;
+                            } else {
+                                throw new RuntimeException(e);
+                            }
                         }
                     }
                 });
