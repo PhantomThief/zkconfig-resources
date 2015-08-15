@@ -19,6 +19,9 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 /**
  * @author w.vela
  */
@@ -88,27 +91,30 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             if (cleanup == null) {
                 return;
             }
-            Thread cleanupThread = new Thread(() -> {
-                do {
-                    if (waitStopPeriod > 0) {
-                        try {
-                            Thread.sleep(waitStopPeriod);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                    if (cleanup.test(oldResource)) {
-                        break;
-                    }
-                } while (true);
-                logger.info("successfully close old resource:{}", oldResource);
-            });
-            cleanupThread.setName("old [" + oldResource.getClass().getSimpleName()
-                    + "] cleanup thread-[" + cleanupThread.getId() + "]");
-            cleanupThread.setUncaughtExceptionHandler((t, e) -> {
-                logger.error("fail to cleanup resource.", e);
-            });
-            cleanupThread.start();
+            new ThreadFactoryBuilder() //
+                    .setNameFormat("old [" + oldResource.getClass().getSimpleName()
+                            + "] cleanup thread-[%d]") //
+                    .setUncaughtExceptionHandler(
+                            (t, e) -> logger.error("fail to cleanup resource:{}",
+                                    oldResource.getClass().getSimpleName(), e)) //
+                    .setPriority(Thread.MIN_PRIORITY) //
+                    .build() //
+                    .newThread(() -> {
+                        do {
+                            if (waitStopPeriod > 0) {
+                                try {
+                                    Thread.sleep(waitStopPeriod);
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }
+                            if (cleanup.test(oldResource)) {
+                                break;
+                            }
+                        } while (true);
+                        logger.info("successfully close old resource:{}", oldResource);
+                    }) //
+                    .start();;
         }
     }
 
@@ -171,11 +177,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     buildingCache.rebuild();
                     return buildingCache;
                 } catch (Throwable e) {
-                    if (e instanceof RuntimeException) {
-                        throw (RuntimeException) e;
-                    } else {
-                        throw new RuntimeException(e);
-                    }
+                    throw Throwables.propagate(e);
                 }
             };
             return this;
@@ -227,12 +229,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     if (t instanceof Closeable) {
                         try {
                             ((Closeable) t).close();
-                        } catch (Exception e) {
-                            if (e instanceof RuntimeException) {
-                                throw (RuntimeException) e;
-                            } else {
-                                throw new RuntimeException(e);
-                            }
+                        } catch (Throwable e) {
+                            throw Throwables.propagate(e);
                         }
                     }
                 });
