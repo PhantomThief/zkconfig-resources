@@ -98,6 +98,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             (t, e) -> logger.error("fail to cleanup resource:{}",
                                     oldResource.getClass().getSimpleName(), e)) //
                     .setPriority(Thread.MIN_PRIORITY) //
+                    .setDaemon(true) //
                     .build() //
                     .newThread(() -> {
                         do {
