@@ -5,7 +5,6 @@ package com.github.phantomthief.zookeeper;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -33,7 +32,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final BiFunction<byte[], Stat, T> factory;
     private final Supplier<NodeCache> cacheFactory;
     private final Predicate<T> cleanup;
-    private final Runnable nodeChangeListener;
     private final long waitStopPeriod;
     private final T emptyObject;
 
@@ -46,12 +44,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
      * @param emptyObject
      */
     private ZkBasedNodeResource(BiFunction<byte[], Stat, T> factory,
-            Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, Runnable nodeChangeListener,
-            long waitStopPeriod, T emptyObject) {
+            Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
+            T emptyObject) {
         this.factory = factory;
         this.cacheFactory = cacheFactory;
         this.cleanup = cleanup;
-        this.nodeChangeListener = nodeChangeListener;
         this.waitStopPeriod = waitStopPeriod;
         this.emptyObject = emptyObject;
     }
@@ -77,10 +74,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                 resource = factory.apply(data.getData(), data.getStat());
                             } else {
                                 resource = emptyObject;
-                            }
-                            if (!Objects.equals(resource, oldResource)
-                                    && nodeChangeListener != null) {
-                                nodeChangeListener.run();
                             }
                         }
                         cleanup(oldResource);
@@ -141,7 +134,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private BiFunction<byte[], Stat, E> factory;
         private Supplier<NodeCache> cacheFactory;
         private Predicate<E> cleanup;
-        private Runnable nodeChangeListener;
         private long waitStopPeriod;
         private E emptyObject;
 
@@ -221,23 +213,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return this;
         }
 
-        public Builder<E> withNodeChangeListener(Runnable runnable) {
-            if (runnable != null) {
-                this.nodeChangeListener = () -> {
-                    try {
-                        runnable.run();
-                    } catch (Throwable e) {
-                        logger.error("Ops. fail to call node change listener:{}", runnable, e);
-                    }
-                };
-            }
-            return this;
-        }
-
         public ZkBasedNodeResource<E> build() {
             ensure();
-            return new ZkBasedNodeResource<>(factory, cacheFactory, cleanup, nodeChangeListener,
-                    waitStopPeriod, emptyObject);
+            return new ZkBasedNodeResource<>(factory, cacheFactory, cleanup, waitStopPeriod,
+                    emptyObject);
         }
 
         private void ensure() {
