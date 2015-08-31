@@ -39,7 +39,7 @@ public class ZkNodeTest {
     public void testChange() throws Exception {
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newBuilder() //
                 .withCacheFactory("/test", curatorFramework) //
-                .withFactory(String::new) //
+                .withFactory(bs -> new String(bs)) //
                 .onResourceChange((current, old) -> {
                     System.out.println("current:" + current + ",old:" + old);
                     assert(current.equals("test2"));
