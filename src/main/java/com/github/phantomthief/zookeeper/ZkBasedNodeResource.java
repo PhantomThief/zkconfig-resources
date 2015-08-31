@@ -19,6 +19,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -220,12 +221,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         private void ensure() {
-            if (factory == null) {
-                throw new NullPointerException("factory is null.");
-            }
-            if (cacheFactory == null) {
-                throw new NullPointerException("cache factory is null.");
-            }
+            Preconditions.checkNotNull(factory);
+            Preconditions.checkNotNull(cacheFactory);
+
             if (cleanup == null) {
                 withCleanup(t -> {
                     if (t instanceof Closeable) {
