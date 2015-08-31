@@ -3,8 +3,12 @@
  */
 package com.github.phantomthief.zookeeper;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,6 +39,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final T emptyObject;
+    private final BiConsumer<T, T> onResourceChange;
 
     /**
      * @param factory
@@ -46,12 +51,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
      */
     private ZkBasedNodeResource(BiFunction<byte[], Stat, T> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
-            T emptyObject) {
+            BiConsumer<T, T> onResourceChange, T emptyObject) {
         this.factory = factory;
         this.cacheFactory = cacheFactory;
         this.cleanup = cleanup;
         this.waitStopPeriod = waitStopPeriod;
         this.emptyObject = emptyObject;
+        this.onResourceChange = onResourceChange;
     }
 
     private volatile T resource;
@@ -76,8 +82,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             } else {
                                 resource = emptyObject;
                             }
+                            cleanup(resource, oldResource);
                         }
-                        cleanup(oldResource);
                     });
                 }
             }
@@ -88,11 +94,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     /**
      * @param oldResource
      */
-    private void cleanup(T oldResource) {
+    private void cleanup(T currentResource, T oldResource) {
         if (oldResource != null && oldResource != emptyObject) {
-            if (cleanup == null) {
-                return;
-            }
             new ThreadFactoryBuilder() //
                     .setNameFormat("old [" + oldResource.getClass().getSimpleName()
                             + "] cleanup thread-[%d]") //
@@ -105,19 +108,18 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     .newThread(() -> {
                         do {
                             if (waitStopPeriod > 0) {
-                                try {
-                                    Thread.sleep(waitStopPeriod);
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                }
+                                sleepUninterruptibly(waitStopPeriod, TimeUnit.MILLISECONDS);
                             }
                             if (cleanup.test(oldResource)) {
                                 break;
                             }
                         } while (true);
                         logger.info("successfully close old resource:{}", oldResource);
+                        if (onResourceChange != null) {
+                            onResourceChange.accept(currentResource, oldResource);
+                        }
                     }) //
-                    .start();;
+                    .start();
         }
     }
 
@@ -137,9 +139,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private Predicate<E> cleanup;
         private long waitStopPeriod;
         private E emptyObject;
+        private BiConsumer<E, E> onResourceChange;
 
         public Builder<E> withFactory(BiFunction<byte[], Stat, E> factory) {
             this.factory = factory;
+            return this;
+        }
+
+        public Builder<E> onResourceChange(BiConsumer<E, E> callback) {
+            this.onResourceChange = callback;
             return this;
         }
 
@@ -217,12 +225,23 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         public ZkBasedNodeResource<E> build() {
             ensure();
             return new ZkBasedNodeResource<>(factory, cacheFactory, cleanup, waitStopPeriod,
-                    emptyObject);
+                    onResourceChange, emptyObject);
         }
 
         private void ensure() {
             Preconditions.checkNotNull(factory);
             Preconditions.checkNotNull(cacheFactory);
+
+            if (onResourceChange != null) {
+                BiConsumer<E, E> temp = onResourceChange;
+                onResourceChange = (t, u) -> { // safe wrapper
+                    try {
+                        temp.accept(t, u);
+                    } catch (Throwable e) {
+                        logger.error("Ops.", e);
+                    }
+                };
+            }
 
             if (cleanup == null) {
                 withCleanup(t -> {
