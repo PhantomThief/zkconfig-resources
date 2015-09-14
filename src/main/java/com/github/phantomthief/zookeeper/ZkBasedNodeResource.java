@@ -7,6 +7,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -24,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -35,11 +37,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private static Logger logger = LoggerFactory.getLogger(ZkBasedNodeResource.class);
 
     private final BiFunction<byte[], Stat, T> factory;
-    private final Supplier<NodeCache> cacheFactory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final T emptyObject;
     private final BiConsumer<T, T> onResourceChange;
+    private final com.google.common.base.Supplier<NodeCache> nodeCache;
 
     /**
      * @param factory
@@ -53,22 +55,28 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
             BiConsumer<T, T> onResourceChange, T emptyObject) {
         this.factory = factory;
-        this.cacheFactory = cacheFactory;
         this.cleanup = cleanup;
         this.waitStopPeriod = waitStopPeriod;
         this.emptyObject = emptyObject;
         this.onResourceChange = onResourceChange;
+        this.nodeCache = Suppliers.memoize(cacheFactory::get);
     }
 
     private volatile T resource;
+    private volatile boolean emptyLogged = false;
 
     public T get() {
         if (resource == null) {
             synchronized (ZkBasedNodeResource.this) {
                 if (resource == null) {
-                    NodeCache cache = cacheFactory.get();
+                    NodeCache cache = nodeCache.get();
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
+                        if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
+                            logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
+                                    emptyObject);
+                            emptyLogged = true;
+                        }
                         return emptyObject;
                     }
                     resource = factory.apply(currentData.getData(), currentData.getStat());
@@ -80,7 +88,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             if (data != null && data.getData() != null) {
                                 resource = factory.apply(data.getData(), data.getStat());
                             } else {
-                                resource = emptyObject;
+                                resource = null;
+                                emptyLogged = false;
                             }
                             cleanup(resource, oldResource);
                         }
@@ -118,8 +127,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         if (onResourceChange != null) {
                             onResourceChange.accept(currentResource, oldResource);
                         }
-                    }) //
-                    .start();
+                    }).start();
         }
     }
 
@@ -259,5 +267,17 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     public static final <T> Builder<T> newBuilder() {
         return new Builder<>();
+    }
+
+    private static String path(NodeCache nodeCache) {
+        try {
+            Field f = NodeCache.class.getDeclaredField("path");
+            f.setAccessible(true);
+            return (String) f.get(nodeCache);
+        } catch (Throwable e) {
+            logger.error("Ops.fail to get path from node:{}, exception:{}", nodeCache,
+                    e.toString());
+            return null;
+        }
     }
 }
