@@ -55,6 +55,26 @@ public class ZkNodeTest {
         sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
+    @Test
+    public void testEmpty() throws Exception {
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newBuilder() //
+                .withCacheFactory("/test2", curatorFramework) //
+                .withFactory(bs -> new String(bs)) //
+                .withEmptyObject("EMPTY") //
+                .build();
+        System.out.println("current:" + node.get());
+        assert(node.get().equals("EMPTY"));
+        curatorFramework.create().creatingParentsIfNeeded().forPath("/test2", "haha".getBytes());
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        System.out.println("current:" + node.get());
+        assert(node.get().equals("haha")); //
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        curatorFramework.delete().forPath("/test2");
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        System.out.println("current:" + node.get());
+        assert(node.get().equals("EMPTY"));
+    }
+
     @AfterClass
     public static void destroy() throws IOException {
         curatorFramework.close();
