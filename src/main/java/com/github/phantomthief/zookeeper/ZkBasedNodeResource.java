@@ -95,7 +95,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
      * @param oldResource
      */
     private void cleanup(T currentResource, T oldResource) {
-        if (oldResource != null && oldResource != emptyObject) {
+        if (oldResource != null && oldResource != emptyObject && currentResource != oldResource) {
             new ThreadFactoryBuilder() //
                     .setNameFormat("old [" + oldResource.getClass().getSimpleName()
                             + "] cleanup thread-[%d]") //
