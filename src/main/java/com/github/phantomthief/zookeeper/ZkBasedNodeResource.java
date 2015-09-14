@@ -104,30 +104,35 @@ public final class ZkBasedNodeResource<T> implements Closeable {
      * @param oldResource
      */
     private void cleanup(T currentResource, T oldResource) {
-        if (oldResource != null && oldResource != emptyObject && currentResource != oldResource) {
-            new ThreadFactoryBuilder() //
-                    .setNameFormat("old [" + oldResource.getClass().getSimpleName()
-                            + "] cleanup thread-[%d]") //
-                    .setUncaughtExceptionHandler(
-                            (t, e) -> logger.error("fail to cleanup resource:{}",
-                                    oldResource.getClass().getSimpleName(), e)) //
-                    .setPriority(Thread.MIN_PRIORITY) //
-                    .setDaemon(true) //
-                    .build() //
-                    .newThread(() -> {
-                        do {
-                            if (waitStopPeriod > 0) {
-                                sleepUninterruptibly(waitStopPeriod, TimeUnit.MILLISECONDS);
+        if (oldResource != null && oldResource != emptyObject) {
+            if (currentResource == oldResource) {
+                logger.warn("[BUG!!!!] should NOT occured, old resource is same as current:{}",
+                        oldResource);
+            } else {
+                new ThreadFactoryBuilder() //
+                        .setNameFormat("old [" + oldResource.getClass().getSimpleName()
+                                + "] cleanup thread-[%d]") //
+                        .setUncaughtExceptionHandler(
+                                (t, e) -> logger.error("fail to cleanup resource:{}",
+                                        oldResource.getClass().getSimpleName(), e)) //
+                        .setPriority(Thread.MIN_PRIORITY) //
+                        .setDaemon(true) //
+                        .build() //
+                        .newThread(() -> {
+                            do {
+                                if (waitStopPeriod > 0) {
+                                    sleepUninterruptibly(waitStopPeriod, TimeUnit.MILLISECONDS);
+                                }
+                                if (cleanup.test(oldResource)) {
+                                    break;
+                                }
+                            } while (true);
+                            logger.info("successfully close old resource:{}", oldResource);
+                            if (onResourceChange != null) {
+                                onResourceChange.accept(currentResource, oldResource);
                             }
-                            if (cleanup.test(oldResource)) {
-                                break;
-                            }
-                        } while (true);
-                        logger.info("successfully close old resource:{}", oldResource);
-                        if (onResourceChange != null) {
-                            onResourceChange.accept(currentResource, oldResource);
-                        }
-                    }).start();
+                        }).start();
+            }
         }
     }
 
