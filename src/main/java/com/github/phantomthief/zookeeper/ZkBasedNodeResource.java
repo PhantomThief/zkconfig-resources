@@ -3,6 +3,7 @@
  */
 package com.github.phantomthief.zookeeper;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.io.Closeable;
@@ -24,7 +25,6 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -242,8 +242,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         private void ensure() {
-            Preconditions.checkNotNull(factory);
-            Preconditions.checkNotNull(cacheFactory);
+            checkNotNull(factory);
+            checkNotNull(cacheFactory);
 
             if (onResourceChange != null) {
                 BiConsumer<E, E> temp = onResourceChange;
