@@ -91,7 +91,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                 resource = null;
                                 emptyLogged = false;
                             }
-                            cleanup(resource, oldResource);
+                            cleanup(resource, oldResource, cache);
                         }
                     });
                 }
@@ -100,21 +100,19 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         return resource;
     }
 
-    /**
-     * @param oldResource
-     */
-    private void cleanup(T currentResource, T oldResource) {
+    private void cleanup(T currentResource, T oldResource, NodeCache nodeCache) {
         if (oldResource != null && oldResource != emptyObject) {
             if (currentResource == oldResource) {
-                logger.warn("[BUG!!!!] should NOT occured, old resource is same as current:{}",
-                        oldResource);
+                logger.warn(
+                        "[BUG!!!!] should NOT occured, old resource is same as current, path:{}, {}",
+                        path(nodeCache), oldResource);
             } else {
                 new ThreadFactoryBuilder() //
                         .setNameFormat("old [" + oldResource.getClass().getSimpleName()
                                 + "] cleanup thread-[%d]") //
                         .setUncaughtExceptionHandler(
-                                (t, e) -> logger.error("fail to cleanup resource:{}",
-                                        oldResource.getClass().getSimpleName(), e)) //
+                                (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
+                                        path(nodeCache), oldResource.getClass().getSimpleName(), e)) //
                         .setPriority(Thread.MIN_PRIORITY) //
                         .setDaemon(true) //
                         .build() //
@@ -127,7 +125,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                     break;
                                 }
                             } while (true);
-                            logger.info("successfully close old resource:{}", oldResource);
+                            logger.info("successfully close old resource, path:{}, {}->{}",
+                                    path(nodeCache), oldResource, currentResource);
                             if (onResourceChange != null) {
                                 onResourceChange.accept(currentResource, oldResource);
                             }
@@ -213,7 +212,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     cleanup.accept(t);
                     return true;
                 } catch (Throwable e) {
-                    logger.error("Ops. fail to close:{}", t, e);
+                    logger.error("Ops. fail to close, path:{}", t, e);
                     return false;
                 }
             };
@@ -276,6 +275,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     private static String path(NodeCache nodeCache) {
         try {
+            if (nodeCache == null) {
+                return "n/a";
+            }
             Field f = NodeCache.class.getDeclaredField("path");
             f.setAccessible(true);
             return (String) f.get(nodeCache);
