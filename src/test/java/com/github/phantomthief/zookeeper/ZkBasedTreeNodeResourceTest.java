@@ -48,7 +48,7 @@ public class ZkBasedTreeNodeResourceTest {
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //
                 .path("/test") //
-                .factory((c, p) -> p.entrySet().stream()
+                .factory(p -> p.entrySet().stream()
                         .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
                 .build();
         System.out.println(tree.get());

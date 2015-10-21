@@ -8,13 +8,14 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -36,7 +37,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private static Logger logger = LoggerFactory.getLogger(ZkBasedTreeNodeResource.class);
 
-    private final BiFunction<ChildData, Map<String, ChildData>, T> factory;
+    private final Function<Map<String, ChildData>, T> factory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final BiConsumer<T, T> onResourceChange;
@@ -44,7 +45,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private final String path;
     private volatile TreeCache treeCache;
 
-    private ZkBasedTreeNodeResource(BiFunction<ChildData, Map<String, ChildData>, T> factory,
+    private ZkBasedTreeNodeResource(Function<Map<String, ChildData>, T> factory,
             Supplier<CuratorFramework> curatorFrameworkFactory, String path, Predicate<T> cleanup,
             long waitStopPeriod, BiConsumer<T, T> onResourceChange) {
         this.factory = factory;
@@ -154,7 +155,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     public static final class Builder<E> {
 
-        private BiFunction<ChildData, Map<String, ChildData>, E> factory;
+        private Function<Map<String, ChildData>, E> factory;
         private String path;
         private Supplier<CuratorFramework> curatorFrameworkFactory;
         private Predicate<E> cleanup;
@@ -166,9 +167,19 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             return this;
         }
 
-        public Builder<E> factory(BiFunction<ChildData, Map<String, ChildData>, E> factory) {
+        public Builder<E> factory(Function<Map<String, ChildData>, E> factory) {
             this.factory = factory;
             return this;
+        }
+
+        public Builder<E> childDataFactory(Function<Collection<ChildData>, E> factory) {
+            checkNotNull(factory);
+            return factory(map -> factory.apply(map.values()));
+        }
+
+        public Builder<E> keysFactory(Function<Collection<String>, E> factory) {
+            checkNotNull(factory);
+            return factory(map -> factory.apply(map.keySet()));
         }
 
         public Builder<E> onResourceChange(BiConsumer<E, E> callback) {
@@ -247,7 +258,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private T doFactory() {
         Map<String, ChildData> map = new HashMap<>();
         generateFullTree(map, treeCache, path);
-        return factory.apply(treeCache.getCurrentData(path), map);
+        return factory.apply(map);
     }
 
     private void generateFullTree(Map<String, ChildData> map, TreeCache cache, String rootPath) {
