@@ -43,14 +43,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final BiConsumer<T, T> onResourceChange;
     private final com.google.common.base.Supplier<NodeCache> nodeCache;
 
-    /**
-     * @param factory
-     * @param cacheFactory
-     * @param cleanup
-     * @param nodeChangeListener
-     * @param waitStopPeriod
-     * @param emptyObject
-     */
     private ZkBasedNodeResource(BiFunction<byte[], Stat, T> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
             BiConsumer<T, T> onResourceChange, T emptyObject) {
