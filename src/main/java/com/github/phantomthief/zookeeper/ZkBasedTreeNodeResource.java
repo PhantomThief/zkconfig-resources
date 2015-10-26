@@ -263,8 +263,10 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private void generateFullTree(Map<String, ChildData> map, TreeCache cache, String rootPath) {
         Map<String, ChildData> thisMap = cache.getCurrentChildren(rootPath);
-        thisMap.values().forEach(c -> map.put(StringUtils.removeStart(c.getPath(), path), c));
-        thisMap.values().forEach(c -> generateFullTree(map, cache, c.getPath()));
+        if (thisMap != null) {
+            thisMap.values().forEach(c -> map.put(StringUtils.removeStart(c.getPath(), path), c));
+            thisMap.values().forEach(c -> generateFullTree(map, cache, c.getPath()));
+        }
     }
 
     public static final <T> Builder<T> newBuilder() {
