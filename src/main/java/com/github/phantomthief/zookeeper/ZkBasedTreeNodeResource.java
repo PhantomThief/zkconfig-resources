@@ -269,7 +269,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         }
     }
 
-    public static final <T> Builder<T> newBuilder() {
+    public static <T> Builder<T> newBuilder() {
         return new Builder<>();
     }
 }

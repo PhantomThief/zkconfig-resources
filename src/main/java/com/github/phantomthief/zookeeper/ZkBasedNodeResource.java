@@ -136,6 +136,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static final class Builder<E> {
 
         private BiFunction<byte[], Stat, E> factory;
@@ -145,30 +146,36 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private E emptyObject;
         private BiConsumer<E, E> onResourceChange;
 
-        public Builder<E> withFactory(BiFunction<byte[], Stat, E> factory) {
-            this.factory = factory;
-            return this;
+        public <E1> Builder<E1> withFactory(BiFunction<byte[], Stat, ? extends E1> factory) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.factory = (BiFunction<byte[], Stat, E1>) factory;
+            return thisBuilder;
         }
 
-        public Builder<E> onResourceChange(BiConsumer<E, E> callback) {
-            this.onResourceChange = callback;
-            return this;
+        public <E1> Builder<E1> onResourceChange(BiConsumer<? super E1, ? super E1> callback) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.onResourceChange = (BiConsumer<E1, E1>) callback;
+            return thisBuilder;
         }
 
-        public Builder<E> withFactory(Function<byte[], E> factory) {
-            this.factory = (data, stat) -> factory.apply(data);
-            return this;
+        public <E1> Builder<E1> withFactory(Function<byte[], ? extends E1> factory) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.factory = (data, stat) -> factory.apply(data);
+            return thisBuilder;
         }
 
-        public Builder<E> withStringFactory(BiFunction<String, Stat, E> factory) {
-            this.factory = (data, stat) -> factory.apply(data == null ? null : new String(data),
-                    stat);
-            return this;
+        public <E1> Builder<E1> withStringFactory(BiFunction<String, Stat, ? extends E1> factory) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.factory = (data, stat) -> factory
+                    .apply(data == null ? null : new String(data), stat);
+            return thisBuilder;
         }
 
-        public Builder<E> withStringFactory(Function<String, E> factory) {
-            this.factory = (data, stat) -> factory.apply(data == null ? null : new String(data));
-            return this;
+        public <E1> Builder<E1> withStringFactory(Function<String, ? extends E1> factory) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.factory = (data, stat) -> factory
+                    .apply(data == null ? null : new String(data));
+            return thisBuilder;
         }
 
         public Builder<E> withCacheFactory(Supplier<NodeCache> cacheFactory) {
@@ -198,8 +205,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return this;
         }
 
-        public Builder<E> withCleanup(Consumer<E> cleanup) {
-            this.cleanup = t -> {
+        public <E1> Builder<E1> withCleanup(Consumer<? super E1> cleanup) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.cleanup = t -> {
                 try {
                     cleanup.accept(t);
                     return true;
@@ -208,12 +216,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     return false;
                 }
             };
-            return this;
+            return thisBuilder;
         }
 
-        public Builder<E> withCleanup(Predicate<E> cleanup) {
-            this.cleanup = cleanup;
-            return this;
+        public <E1> Builder<E1> withCleanup(Predicate<? super E> cleanup) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.cleanup = (Predicate<E1>) cleanup;
+            return thisBuilder;
         }
 
         public Builder<E> withWaitStopPeriod(long waitStopPeriod) {
@@ -221,14 +230,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return this;
         }
 
-        public Builder<E> withEmptyObject(E emptyObject) {
-            this.emptyObject = emptyObject;
-            return this;
+        public <E1> Builder<E1> withEmptyObject(E1 emptyObject) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.emptyObject = emptyObject;
+            return thisBuilder;
         }
 
-        public ZkBasedNodeResource<E> build() {
+        public <E1> ZkBasedNodeResource<E1> build() {
             ensure();
-            return new ZkBasedNodeResource<>(factory, cacheFactory, cleanup, waitStopPeriod,
+            return new ZkBasedNodeResource(factory, cacheFactory, cleanup, waitStopPeriod,
                     onResourceChange, emptyObject);
         }
 
@@ -261,7 +271,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
-    public static final <T> Builder<T> newBuilder() {
+    public static Builder<Object> newBuilder() {
         return new Builder<>();
     }
 

@@ -37,42 +37,42 @@ public class ZkNodeTest {
 
     @Test
     public void testChange() throws Exception {
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newBuilder() //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
                 .withCacheFactory("/test", curatorFramework) //
                 .withFactory(bs -> new String(bs)) //
                 .onResourceChange((current, old) -> {
                     System.out.println("current:" + current + ",old:" + old);
-                    assert(current.equals("test2"));
-                    assert(old.equals("test1"));
+                    assert (current.equals("test2"));
+                    assert (old.equals("test1"));
                 }) //
                 .build();
         System.out.println("current:" + node.get());
-        assert(node.get().equals("test1"));
+        assert (node.get().equals("test1"));
         curatorFramework.setData().forPath("/test", "test2".getBytes());
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         System.out.println("current:" + node.get());
-        assert(node.get().equals("test2"));
+        assert (node.get().equals("test2"));
         sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     @Test
     public void testEmpty() throws Exception {
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newBuilder() //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
                 .withCacheFactory("/test2", curatorFramework) //
                 .withFactory(bs -> new String(bs)) //
                 .withEmptyObject("EMPTY") //
                 .build();
         System.out.println("current:" + node.get());
-        assert(node.get().equals("EMPTY"));
+        assert (node.get().equals("EMPTY"));
         curatorFramework.create().creatingParentsIfNeeded().forPath("/test2", "haha".getBytes());
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         System.out.println("current:" + node.get());
-        assert(node.get().equals("haha")); //
+        assert (node.get().equals("haha")); //
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         curatorFramework.delete().forPath("/test2");
         sleepUninterruptibly(1, TimeUnit.SECONDS);
         System.out.println("current:" + node.get());
-        assert(node.get().equals("EMPTY"));
+        assert (node.get().equals("EMPTY"));
     }
 
     @AfterClass
