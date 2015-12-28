@@ -3,6 +3,7 @@
  */
 package com.github.phantomthief.zookeeper.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -14,6 +15,8 @@ import java.util.function.Function;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
+
+import com.google.common.base.Throwables;
 
 /**
  * @author w.vela
@@ -28,7 +31,24 @@ public final class ZNodeModifyUtils {
         throw new UnsupportedOperationException();
     }
 
-    public static final <T> void modify(CuratorFramework client, String path,
+    public static void modify(CuratorFramework client, String path, byte[] value) {
+        checkNotNull(client);
+        checkNotNull(path);
+        checkNotNull(value);
+        try {
+            client.setData().forPath(path, value);
+        } catch (KeeperException.NoNodeException e) {
+            try {
+                client.create().creatingParentsIfNeeded().forPath(path, value);
+            } catch (Exception e1) {
+                throw Throwables.propagate(e1);
+            }
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public static <T> void modify(CuratorFramework client, String path,
             Function<T, T> changeFunction, Function<byte[], T> decoder,
             Function<T, byte[]> encoder) {
         Function<byte[], byte[]> realFunction = old -> {
