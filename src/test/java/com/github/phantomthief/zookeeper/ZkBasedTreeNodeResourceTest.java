@@ -42,25 +42,30 @@ public class ZkBasedTreeNodeResourceTest {
         curatorFramework.create().forPath("/test/test3/test33", "test33".getBytes());
     }
 
+    @AfterClass
+    public static void destroy() throws IOException {
+        curatorFramework.close();
+        testingServer.close();
+    }
+
     @Test
     public void test() throws Exception {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //
-                .path("/test") //
-                .factory(p -> p.entrySet().stream()
-                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
+                .path("/test")
+                //
+                .factory(
+                        p -> p.entrySet()
+                                .stream()
+                                .collect(
+                                        toMap(Entry::getKey,
+                                                e -> new String(e.getValue().getData())))) //
                 .build();
         System.out.println(tree.get());
         curatorFramework.setData().forPath("/test/test3/test33", "test34".getBytes());
         sleepUninterruptibly(1, SECONDS);
         System.out.println(tree.get());
-    }
-
-    @AfterClass
-    public static void destroy() throws IOException {
-        curatorFramework.close();
-        testingServer.close();
     }
 
 }

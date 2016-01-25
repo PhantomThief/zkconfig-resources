@@ -4,7 +4,11 @@
 package com.github.phantomthief.zookeeper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Suppliers.memoize;
+import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.lang.Thread.MIN_PRIORITY;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -23,10 +27,7 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Suppliers;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -34,7 +35,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 public final class ZkBasedNodeResource<T> implements Closeable {
 
-    private static Logger logger = LoggerFactory.getLogger(ZkBasedNodeResource.class);
+    private static Logger logger = getLogger(ZkBasedNodeResource.class);
 
     private final BiFunction<byte[], Stat, T> factory;
     private final Predicate<T> cleanup;
@@ -42,7 +43,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final T emptyObject;
     private final BiConsumer<T, T> onResourceChange;
     private final com.google.common.base.Supplier<NodeCache> nodeCache;
-
+    private volatile T resource;
+    private volatile boolean emptyLogged = false;
     private ZkBasedNodeResource(BiFunction<byte[], Stat, T> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
             BiConsumer<T, T> onResourceChange, T emptyObject) {
@@ -51,11 +53,26 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         this.waitStopPeriod = waitStopPeriod;
         this.emptyObject = emptyObject;
         this.onResourceChange = onResourceChange;
-        this.nodeCache = Suppliers.memoize(cacheFactory::get);
+        this.nodeCache = memoize(cacheFactory::get);
     }
 
-    private volatile T resource;
-    private volatile boolean emptyLogged = false;
+    public static Builder<Object> newBuilder() {
+        return new Builder<>();
+    }
+
+    private static String path(NodeCache nodeCache) {
+        try {
+            if (nodeCache == null) {
+                return "n/a";
+            }
+            Field f = NodeCache.class.getDeclaredField("path");
+            f.setAccessible(true);
+            return (String) f.get(nodeCache);
+        } catch (Throwable e) {
+            logger.error("Ops.fail to get path from node:{}, exception:{}", nodeCache, e.toString());
+            return null;
+        }
+    }
 
     public T get() {
         if (resource == null) {
@@ -65,8 +82,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
-                            logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
-                                    emptyObject);
+                            logger.warn("found no zk path for:{}, using empty data:{}",
+                                    path(cache), emptyObject);
                             emptyLogged = true;
                         }
                         return emptyObject;
@@ -100,29 +117,33 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         path(nodeCache), oldResource);
             } else {
                 new ThreadFactoryBuilder() //
-                        .setNameFormat("old [" + oldResource.getClass().getSimpleName()
-                                + "] cleanup thread-[%d]") //
+                        .setNameFormat(
+                                "old [" + oldResource.getClass().getSimpleName()
+                                        + "] cleanup thread-[%d]")
+                        //
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
                                         path(nodeCache), oldResource.getClass().getSimpleName(), e)) //
-                        .setPriority(Thread.MIN_PRIORITY) //
+                        .setPriority(MIN_PRIORITY) //
                         .setDaemon(true) //
                         .build() //
-                        .newThread(() -> {
-                            do {
-                                if (waitStopPeriod > 0) {
-                                    sleepUninterruptibly(waitStopPeriod, TimeUnit.MILLISECONDS);
-                                }
-                                if (cleanup.test(oldResource)) {
-                                    break;
-                                }
-                            } while (true);
-                            logger.info("successfully close old resource, path:{}, {}->{}",
-                                    path(nodeCache), oldResource, currentResource);
-                            if (onResourceChange != null) {
-                                onResourceChange.accept(currentResource, oldResource);
-                            }
-                        }).start();
+                        .newThread(
+                                () -> {
+                                    do {
+                                        if (waitStopPeriod > 0) {
+                                            sleepUninterruptibly(waitStopPeriod,
+                                                    TimeUnit.MILLISECONDS);
+                                        }
+                                        if (cleanup.test(oldResource)) {
+                                            break;
+                                        }
+                                    } while (true);
+                                    logger.info("successfully close old resource, path:{}, {}->{}",
+                                            path(nodeCache), oldResource, currentResource);
+                                    if (onResourceChange != null) {
+                                        onResourceChange.accept(currentResource, oldResource);
+                                    }
+                                }).start();
             }
         }
     }
@@ -166,15 +187,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
         public <E1> Builder<E1> withStringFactory(BiFunction<String, Stat, ? extends E1> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory
-                    .apply(data == null ? null : new String(data), stat);
+            thisBuilder.factory = (data, stat) -> factory.apply(data == null ? null : new String(
+                    data), stat);
             return thisBuilder;
         }
 
         public <E1> Builder<E1> withStringFactory(Function<String, ? extends E1> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory
-                    .apply(data == null ? null : new String(data));
+            thisBuilder.factory = (data, stat) -> factory.apply(data == null ? null : new String(
+                    data));
             return thisBuilder;
         }
 
@@ -199,7 +220,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     buildingCache.rebuild();
                     return buildingCache;
                 } catch (Throwable e) {
-                    throw Throwables.propagate(e);
+                    throw propagate(e);
                 }
             };
             return this;
@@ -263,30 +284,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         try {
                             ((Closeable) t).close();
                         } catch (Throwable e) {
-                            throw Throwables.propagate(e);
+                            throw propagate(e);
                         }
                     }
                 });
             }
-        }
-    }
-
-    public static Builder<Object> newBuilder() {
-        return new Builder<>();
-    }
-
-    private static String path(NodeCache nodeCache) {
-        try {
-            if (nodeCache == null) {
-                return "n/a";
-            }
-            Field f = NodeCache.class.getDeclaredField("path");
-            f.setAccessible(true);
-            return (String) f.get(nodeCache);
-        } catch (Throwable e) {
-            logger.error("Ops.fail to get path from node:{}, exception:{}", nodeCache,
-                    e.toString());
-            return null;
         }
     }
 }

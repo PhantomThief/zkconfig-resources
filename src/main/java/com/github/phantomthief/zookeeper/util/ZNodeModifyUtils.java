@@ -15,6 +15,7 @@ import java.util.function.Function;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
 
 import com.google.common.base.Throwables;
 
@@ -23,9 +24,9 @@ import com.google.common.base.Throwables;
  */
 public final class ZNodeModifyUtils {
 
-    private static org.slf4j.Logger logger = getLogger(ZNodeModifyUtils.class);
     private static final long DEFAULT_WAIT = SECONDS.toMillis(1);
     private static final int INFINITY_LOOP = -1;
+    private static Logger logger = getLogger(ZNodeModifyUtils.class);
 
     private ZNodeModifyUtils() {
         throw new UnsupportedOperationException();
@@ -48,9 +49,9 @@ public final class ZNodeModifyUtils {
         }
     }
 
-    public static <T> void modify(CuratorFramework client, String path,
-            Function<T, T> changeFunction, Function<byte[], T> decoder,
-            Function<T, byte[]> encoder) {
+    public static <T> void
+            modify(CuratorFramework client, String path, Function<T, T> changeFunction,
+                    Function<byte[], T> decoder, Function<T, byte[]> encoder) {
         Function<byte[], byte[]> realFunction = old -> {
             T decodedOld = decoder.apply(old);
             return encoder.apply(changeFunction.apply(decodedOld));
@@ -58,7 +59,7 @@ public final class ZNodeModifyUtils {
         modify(client, path, realFunction, INFINITY_LOOP, DEFAULT_WAIT);
     }
 
-    public static final boolean modify(CuratorFramework client, String path,
+    public static boolean modify(CuratorFramework client, String path,
             Function<byte[], byte[]> changeFunction, int retryTimes, long retryWait) {
         int times = 0;
         do {

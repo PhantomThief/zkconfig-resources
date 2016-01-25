@@ -48,19 +48,50 @@ public class ZNodeModifyUtilsTest {
         curatorFramework.start();
     }
 
+    @AfterClass
+    public static void destroy() throws IOException {
+        curatorFramework.close();
+        testingServer.close();
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static <T> T fromJSON(String json, Class<? extends Collection> collectionType,
+            Class<?> valueType) {
+        if (json == null || json.length() == 0) {
+            try {
+                return (T) collectionType.newInstance();
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
+        try {
+            return (T) mapper.readValue(json, TypeFactory.defaultInstance()
+                    .constructCollectionType(collectionType, valueType));
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private static String toJSON(Object obj) {
+        try {
+            return mapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     @Test
     public void testModify() throws Exception {
         ZNodeModifyUtils.modify(curatorFramework, TEST_PATH, old -> {
             old.add("1");
             return old;
-        } , this::setDecode, this::setEncode);
-        assertEquals(setDecode(curatorFramework.getData().forPath(TEST_PATH)),
-                Sets.newHashSet("1"));
+        }, this::setDecode, this::setEncode);
+        assertEquals(setDecode(curatorFramework.getData().forPath(TEST_PATH)), Sets.newHashSet("1"));
 
         ZNodeModifyUtils.modify(curatorFramework, TEST_PATH, old -> {
             old.remove("1");
             return old;
-        } , this::setDecode, this::setEncode);
+        }, this::setDecode, this::setEncode);
         assertEquals(setDecode(curatorFramework.getData().forPath(TEST_PATH)), Sets.newHashSet());
     }
 
@@ -102,38 +133,6 @@ public class ZNodeModifyUtilsTest {
             return null;
         } else {
             return toJSON(set).getBytes();
-        }
-    }
-
-    @AfterClass
-    public static void destroy() throws IOException {
-        curatorFramework.close();
-        testingServer.close();
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static <T> T fromJSON(String json, Class<? extends Collection> collectionType,
-            Class<?> valueType) {
-        if (json == null || json.length() == 0) {
-            try {
-                return (T) collectionType.newInstance();
-            } catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
-        }
-        try {
-            return (T) mapper.readValue(json, TypeFactory.defaultInstance()
-                    .constructCollectionType(collectionType, valueType));
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private static String toJSON(Object obj) {
-        try {
-            return mapper.writeValueAsString(obj);
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
         }
     }
 }

@@ -4,7 +4,12 @@
 package com.github.phantomthief.zookeeper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.lang.Thread.MIN_PRIORITY;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.INITIALIZED;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,7 +17,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -23,11 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
-import org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -35,7 +36,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
-    private static Logger logger = LoggerFactory.getLogger(ZkBasedTreeNodeResource.class);
+    private static Logger logger = getLogger(ZkBasedTreeNodeResource.class);
 
     private final Function<Map<String, ChildData>, T> factory;
     private final Predicate<T> cleanup;
@@ -44,6 +45,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private final Supplier<CuratorFramework> curatorFrameworkFactory;
     private final String path;
     private volatile TreeCache treeCache;
+    private volatile T resource;
 
     private ZkBasedTreeNodeResource(Function<Map<String, ChildData>, T> factory,
             Supplier<CuratorFramework> curatorFrameworkFactory, String path, Predicate<T> cleanup,
@@ -54,6 +56,10 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         this.waitStopPeriod = waitStopPeriod;
         this.curatorFrameworkFactory = curatorFrameworkFactory;
         this.onResourceChange = onResourceChange;
+    }
+
+    public static <T> Builder<T> newBuilder() {
+        return new Builder<>();
     }
 
     private TreeCache treeCache() {
@@ -67,7 +73,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                                 .setCacheData(true) //
                                 .build();
                         building.getListenable().addListener((c, e) -> {
-                            if (e.getType() == Type.INITIALIZED) {
+                            if (e.getType() == INITIALIZED) {
                                 countDownLatch.countDown();
                             }
                         });
@@ -76,15 +82,13 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         treeCache = building;
                     } catch (Throwable e) {
                         logger.error("Ops.", e);
-                        throw Throwables.propagate(e);
+                        throw propagate(e);
                     }
                 }
             }
         }
         return treeCache;
     }
-
-    private volatile T resource;
 
     public T get() {
         if (resource == null) {
@@ -114,29 +118,32 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         path, oldResource);
             } else {
                 new ThreadFactoryBuilder() //
-                        .setNameFormat("old [" + oldResource.getClass().getSimpleName()
-                                + "] cleanup thread-[%d]") //
+                        .setNameFormat(
+                                "old [" + oldResource.getClass().getSimpleName()
+                                        + "] cleanup thread-[%d]")
+                        //
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
                                         path, oldResource.getClass().getSimpleName(), e)) //
-                        .setPriority(Thread.MIN_PRIORITY) //
+                        .setPriority(MIN_PRIORITY) //
                         .setDaemon(true) //
                         .build() //
-                        .newThread(() -> {
-                            do {
-                                if (waitStopPeriod > 0) {
-                                    sleepUninterruptibly(waitStopPeriod, TimeUnit.MILLISECONDS);
-                                }
-                                if (cleanup.test(oldResource)) {
-                                    break;
-                                }
-                            } while (true);
-                            logger.info("successfully close old resource, path:{}, {}->{}", path,
-                                    oldResource, currentResource);
-                            if (onResourceChange != null) {
-                                onResourceChange.accept(currentResource, oldResource);
-                            }
-                        }).start();
+                        .newThread(
+                                () -> {
+                                    do {
+                                        if (waitStopPeriod > 0) {
+                                            sleepUninterruptibly(waitStopPeriod, MILLISECONDS);
+                                        }
+                                        if (cleanup.test(oldResource)) {
+                                            break;
+                                        }
+                                    } while (true);
+                                    logger.info("successfully close old resource, path:{}, {}->{}",
+                                            path, oldResource, currentResource);
+                                    if (onResourceChange != null) {
+                                        onResourceChange.accept(currentResource, oldResource);
+                                    }
+                                }).start();
             }
         }
     }
@@ -150,6 +157,20 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             if (treeCache != null) {
                 treeCache.close();
             }
+        }
+    }
+
+    private T doFactory() {
+        Map<String, ChildData> map = new HashMap<>();
+        generateFullTree(map, treeCache, path);
+        return factory.apply(map);
+    }
+
+    private void generateFullTree(Map<String, ChildData> map, TreeCache cache, String rootPath) {
+        Map<String, ChildData> thisMap = cache.getCurrentChildren(rootPath);
+        if (thisMap != null) {
+            thisMap.values().forEach(c -> map.put(StringUtils.removeStart(c.getPath(), path), c));
+            thisMap.values().forEach(c -> generateFullTree(map, cache, c.getPath()));
         }
     }
 
@@ -247,29 +268,11 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         try {
                             ((Closeable) t).close();
                         } catch (Throwable e) {
-                            throw Throwables.propagate(e);
+                            throw propagate(e);
                         }
                     }
                 });
             }
         }
-    }
-
-    private T doFactory() {
-        Map<String, ChildData> map = new HashMap<>();
-        generateFullTree(map, treeCache, path);
-        return factory.apply(map);
-    }
-
-    private void generateFullTree(Map<String, ChildData> map, TreeCache cache, String rootPath) {
-        Map<String, ChildData> thisMap = cache.getCurrentChildren(rootPath);
-        if (thisMap != null) {
-            thisMap.values().forEach(c -> map.put(StringUtils.removeStart(c.getPath(), path), c));
-            thisMap.values().forEach(c -> generateFullTree(map, cache, c.getPath()));
-        }
-    }
-
-    public static <T> Builder<T> newBuilder() {
-        return new Builder<>();
     }
 }
