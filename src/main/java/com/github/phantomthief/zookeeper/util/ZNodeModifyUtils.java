@@ -4,6 +4,7 @@
 package com.github.phantomthief.zookeeper.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -16,8 +17,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
-
-import com.google.common.base.Throwables;
 
 /**
  * @author w.vela
@@ -42,10 +41,10 @@ public final class ZNodeModifyUtils {
             try {
                 client.create().creatingParentsIfNeeded().forPath(path, value);
             } catch (Exception e1) {
-                throw Throwables.propagate(e1);
+                throw propagate(e1);
             }
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throw propagate(e);
         }
     }
 
