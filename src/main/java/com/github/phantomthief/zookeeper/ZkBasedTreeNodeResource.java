@@ -8,6 +8,7 @@ import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.commons.lang3.StringUtils.removeStart;
 import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.INITIALIZED;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -23,7 +24,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
@@ -121,7 +121,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         .setNameFormat(
                                 "old [" + oldResource.getClass().getSimpleName()
                                         + "] cleanup thread-[%d]")
-                        //
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
                                         path, oldResource.getClass().getSimpleName(), e)) //
@@ -169,7 +168,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private void generateFullTree(Map<String, ChildData> map, TreeCache cache, String rootPath) {
         Map<String, ChildData> thisMap = cache.getCurrentChildren(rootPath);
         if (thisMap != null) {
-            thisMap.values().forEach(c -> map.put(StringUtils.removeStart(c.getPath(), path), c));
+            thisMap.values().forEach(c -> map.put(removeStart(c.getPath(), path), c));
             thisMap.values().forEach(c -> generateFullTree(map, cache, c.getPath()));
         }
     }

@@ -8,12 +8,12 @@ import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -45,6 +45,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final com.google.common.base.Supplier<NodeCache> nodeCache;
     private volatile T resource;
     private volatile boolean emptyLogged = false;
+
     private ZkBasedNodeResource(BiFunction<byte[], Stat, T> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
             BiConsumer<T, T> onResourceChange, T emptyObject) {
@@ -120,7 +121,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         .setNameFormat(
                                 "old [" + oldResource.getClass().getSimpleName()
                                         + "] cleanup thread-[%d]")
-                        //
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
                                         path(nodeCache), oldResource.getClass().getSimpleName(), e)) //
@@ -131,8 +131,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                 () -> {
                                     do {
                                         if (waitStopPeriod > 0) {
-                                            sleepUninterruptibly(waitStopPeriod,
-                                                    TimeUnit.MILLISECONDS);
+                                            sleepUninterruptibly(waitStopPeriod, MILLISECONDS);
                                         }
                                         if (cleanup.test(oldResource)) {
                                             break;
