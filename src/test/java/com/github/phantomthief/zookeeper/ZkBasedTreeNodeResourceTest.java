@@ -55,12 +55,8 @@ public class ZkBasedTreeNodeResourceTest {
                 .curator(curatorFramework) //
                 .path("/test")
                 //
-                .factory(
-                        p -> p.entrySet()
-                                .stream()
-                                .collect(
-                                        toMap(Entry::getKey,
-                                                e -> new String(e.getValue().getData())))) //
+                .factory(p -> p.entrySet().stream()
+                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
                 .build();
         System.out.println(tree.get());
         curatorFramework.setData().forPath("/test/test3/test33", "test34".getBytes());

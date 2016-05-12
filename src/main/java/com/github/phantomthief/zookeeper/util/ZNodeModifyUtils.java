@@ -48,9 +48,9 @@ public final class ZNodeModifyUtils {
         }
     }
 
-    public static <T> void
-            modify(CuratorFramework client, String path, Function<T, T> changeFunction,
-                    Function<byte[], T> decoder, Function<T, byte[]> encoder) {
+    public static <T> void modify(CuratorFramework client, String path,
+            Function<T, T> changeFunction, Function<byte[], T> decoder,
+            Function<T, byte[]> encoder) {
         Function<byte[], byte[]> realFunction = old -> {
             T decodedOld = decoder.apply(old);
             return encoder.apply(changeFunction.apply(decodedOld));

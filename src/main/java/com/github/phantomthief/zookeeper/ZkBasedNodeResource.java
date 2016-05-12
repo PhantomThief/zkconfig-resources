@@ -70,7 +70,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             f.setAccessible(true);
             return (String) f.get(nodeCache);
         } catch (Throwable e) {
-            logger.error("Ops.fail to get path from node:{}, exception:{}", nodeCache, e.toString());
+            logger.error("Ops.fail to get path from node:{}, exception:{}", nodeCache,
+                    e.toString());
             return null;
         }
     }
@@ -83,8 +84,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
-                            logger.warn("found no zk path for:{}, using empty data:{}",
-                                    path(cache), emptyObject);
+                            logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
+                                    emptyObject);
                             emptyLogged = true;
                         }
                         return emptyObject;
@@ -118,31 +119,29 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         path(nodeCache), oldResource);
             } else {
                 new ThreadFactoryBuilder() //
-                        .setNameFormat(
-                                "old [" + oldResource.getClass().getSimpleName()
-                                        + "] cleanup thread-[%d]")
+                        .setNameFormat("old [" + oldResource.getClass().getSimpleName()
+                                + "] cleanup thread-[%d]")
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
                                         path(nodeCache), oldResource.getClass().getSimpleName(), e)) //
                         .setPriority(MIN_PRIORITY) //
                         .setDaemon(true) //
                         .build() //
-                        .newThread(
-                                () -> {
-                                    do {
-                                        if (waitStopPeriod > 0) {
-                                            sleepUninterruptibly(waitStopPeriod, MILLISECONDS);
-                                        }
-                                        if (cleanup.test(oldResource)) {
-                                            break;
-                                        }
-                                    } while (true);
-                                    logger.info("successfully close old resource, path:{}, {}->{}",
-                                            path(nodeCache), oldResource, currentResource);
-                                    if (onResourceChange != null) {
-                                        onResourceChange.accept(currentResource, oldResource);
-                                    }
-                                }).start();
+                        .newThread(() -> {
+                            do {
+                                if (waitStopPeriod > 0) {
+                                    sleepUninterruptibly(waitStopPeriod, MILLISECONDS);
+                                }
+                                if (cleanup.test(oldResource)) {
+                                    break;
+                                }
+                            } while (true);
+                            logger.info("successfully close old resource, path:{}, {}->{}",
+                                    path(nodeCache), oldResource, currentResource);
+                            if (onResourceChange != null) {
+                                onResourceChange.accept(currentResource, oldResource);
+                            }
+                        }).start();
             }
         }
     }
@@ -186,15 +185,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
         public <E1> Builder<E1> withStringFactory(BiFunction<String, Stat, ? extends E1> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory.apply(data == null ? null : new String(
-                    data), stat);
+            thisBuilder.factory = (data, stat) -> factory
+                    .apply(data == null ? null : new String(data), stat);
             return thisBuilder;
         }
 
         public <E1> Builder<E1> withStringFactory(Function<String, ? extends E1> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory.apply(data == null ? null : new String(
-                    data));
+            thisBuilder.factory = (data, stat) -> factory
+                    .apply(data == null ? null : new String(data));
             return thisBuilder;
         }
 

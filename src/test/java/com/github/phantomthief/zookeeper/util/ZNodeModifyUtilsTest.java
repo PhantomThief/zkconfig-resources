@@ -86,7 +86,8 @@ public class ZNodeModifyUtilsTest {
             old.add("1");
             return old;
         }, this::setDecode, this::setEncode);
-        assertEquals(setDecode(curatorFramework.getData().forPath(TEST_PATH)), Sets.newHashSet("1"));
+        assertEquals(setDecode(curatorFramework.getData().forPath(TEST_PATH)),
+                Sets.newHashSet("1"));
 
         ZNodeModifyUtils.modify(curatorFramework, TEST_PATH, old -> {
             old.remove("1");
