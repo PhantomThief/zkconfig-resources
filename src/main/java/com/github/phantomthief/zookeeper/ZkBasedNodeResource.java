@@ -61,6 +61,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         return new Builder<>();
     }
 
+    public static <T> GenericZkBasedNodeBuilder<T> newGenericBuilder(){
+        return new GenericZkBasedNodeBuilder<>(newBuilder());
+    }
+
     private static String path(NodeCache nodeCache) {
         try {
             if (nodeCache == null) {
@@ -224,7 +228,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return this;
         }
 
+        /**
+         * using {@link #withCleanupConsumer(Consumer)}
+         */
+        @Deprecated
         public <E1> Builder<E1> withCleanup(Consumer<? super E1> cleanup) {
+            return withCleanupConsumer(cleanup);
+        }
+
+        public <E1> Builder<E1> withCleanupConsumer(Consumer<? super E1> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.cleanup = t -> {
                 try {
@@ -238,7 +250,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return thisBuilder;
         }
 
-        public <E1> Builder<E1> withCleanup(Predicate<? super E> cleanup) {
+        /**
+         * using {@link #withCleanupPredicate(Predicate)}
+         */
+        @Deprecated
+        public <E1> Builder<E1> withCleanup(Predicate<? super E1> cleanup) {
+            return withCleanupPredicate(cleanup);
+        }
+
+        public <E1> Builder<E1> withCleanupPredicate(Predicate<? super E1> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.cleanup = (Predicate<E1>) cleanup;
             return thisBuilder;
