@@ -3,8 +3,8 @@
  */
 package com.github.phantomthief.zookeeper;
 
+import static com.github.phantomthief.util.MoreSuppliers.lazy;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
@@ -28,6 +28,8 @@ import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
+import com.github.phantomthief.util.ThrowableBiFunction;
+import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -37,16 +39,16 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedNodeResource.class);
 
-    private final BiFunction<byte[], Stat, T> factory;
+    private final ThrowableBiFunction<byte[], Stat, T, Exception> factory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final T emptyObject;
     private final BiConsumer<T, T> onResourceChange;
-    private final com.google.common.base.Supplier<NodeCache> nodeCache;
+    private final Supplier<NodeCache> nodeCache;
     private volatile T resource;
     private volatile boolean emptyLogged = false;
 
-    private ZkBasedNodeResource(BiFunction<byte[], Stat, T> factory,
+    private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
             BiConsumer<T, T> onResourceChange, T emptyObject) {
         this.factory = factory;
@@ -54,14 +56,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         this.waitStopPeriod = waitStopPeriod;
         this.emptyObject = emptyObject;
         this.onResourceChange = onResourceChange;
-        this.nodeCache = memoize(cacheFactory::get);
+        this.nodeCache = lazy(cacheFactory);
     }
 
     public static Builder<Object> newBuilder() {
         return new Builder<>();
     }
 
-    public static <T> GenericZkBasedNodeBuilder<T> newGenericBuilder(){
+    public static <T> GenericZkBasedNodeBuilder<T> newGenericBuilder() {
         return new GenericZkBasedNodeBuilder<>(newBuilder());
     }
 
@@ -94,7 +96,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         }
                         return emptyObject;
                     }
-                    resource = factory.apply(currentData.getData(), currentData.getStat());
+                    try {
+                        resource = factory.apply(currentData.getData(), currentData.getStat());
+                    } catch (Exception e) {
+                        throw propagate(e);
+                    }
                     cache.getListenable().addListener(() -> {
                         T oldResource = null;
                         synchronized (ZkBasedNodeResource.this) {
@@ -119,7 +125,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         if (oldResource != null && oldResource != emptyObject) {
             if (currentResource == oldResource) {
                 logger.warn(
-                        "[BUG!!!!] should NOT occured, old resource is same as current, path:{}, {}",
+                        "[BUG!!!!] should NOT occurred, old resource is same as current, path:{}, {}",
                         path(nodeCache), oldResource);
             } else {
                 new ThreadFactoryBuilder() //
@@ -162,16 +168,25 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static final class Builder<E> {
 
-        private BiFunction<byte[], Stat, E> factory;
+        private ThrowableBiFunction<byte[], Stat, E, Exception> factory;
         private Supplier<NodeCache> cacheFactory;
         private Predicate<E> cleanup;
         private long waitStopPeriod;
         private E emptyObject;
         private BiConsumer<E, E> onResourceChange;
 
+        /**
+         * use {@link #withFactoryEx}
+         */
+        @Deprecated
         public <E1> Builder<E1> withFactory(BiFunction<byte[], Stat, ? extends E1> factory) {
+            return withFactoryEx(factory::apply);
+        }
+
+        public <E1> Builder<E1>
+                withFactoryEx(ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (BiFunction<byte[], Stat, E1>) factory;
+            thisBuilder.factory = (ThrowableBiFunction<byte[], Stat, E1, Exception>) factory;
             return thisBuilder;
         }
 
@@ -181,24 +196,43 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return thisBuilder;
         }
 
+        /**
+         * use {@link #withFactoryEx}
+         */
+        @Deprecated
         public <E1> Builder<E1> withFactory(Function<byte[], ? extends E1> factory) {
-            Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory.apply(data);
-            return thisBuilder;
+            return withFactoryEx(factory::apply);
         }
 
+        public <E1> Builder<E1>
+                withFactoryEx(ThrowableFunction<byte[], ? extends E1, Exception> factory) {
+            return withFactoryEx((b, s) -> factory.apply(b));
+        }
+
+        /**
+         * use {@link #withStringFactoryEx}
+         */
+        @Deprecated
         public <E1> Builder<E1> withStringFactory(BiFunction<String, Stat, ? extends E1> factory) {
-            Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory
-                    .apply(data == null ? null : new String(data), stat);
-            return thisBuilder;
+            return withStringFactoryEx(factory::apply);
         }
 
+        public <E1> Builder<E1> withStringFactoryEx(
+                ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
+            return withFactoryEx((b, s) -> factory.apply(b == null ? null : new String(b), s));
+        }
+
+        /**
+         * use {@link #withStringFactoryEx}
+         */
+        @Deprecated
         public <E1> Builder<E1> withStringFactory(Function<String, ? extends E1> factory) {
-            Builder<E1> thisBuilder = (Builder<E1>) this;
-            thisBuilder.factory = (data, stat) -> factory
-                    .apply(data == null ? null : new String(data));
-            return thisBuilder;
+            return withStringFactoryEx(factory::apply);
+        }
+
+        public <E1> Builder<E1>
+                withStringFactoryEx(ThrowableFunction<String, ? extends E1, Exception> factory) {
+            return withStringFactoryEx((b, s) -> factory.apply(b));
         }
 
         public Builder<E> withCacheFactory(Supplier<NodeCache> cacheFactory) {

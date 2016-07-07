@@ -11,6 +11,8 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 
+import com.github.phantomthief.util.ThrowableBiFunction;
+import com.github.phantomthief.util.ThrowableFunction;
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource.Builder;
 
 /**
@@ -25,8 +27,17 @@ public class GenericZkBasedNodeBuilder<T> {
         this.builder = builder;
     }
 
+    /**
+     * use {@link #withFactoryEx}
+     */
+    @Deprecated
     public GenericZkBasedNodeBuilder<T> withFactory(BiFunction<byte[], Stat, ? extends T> factory) {
-        builder.withFactory(factory);
+        return withFactoryEx(factory::apply);
+    }
+
+    public GenericZkBasedNodeBuilder<T>
+            withFactoryEx(ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
+        builder.withFactoryEx(factory);
         return this;
     }
 
@@ -36,20 +47,43 @@ public class GenericZkBasedNodeBuilder<T> {
         return this;
     }
 
+    /**
+     * use {@link #withFactoryEx}
+     */
+    @Deprecated
     public GenericZkBasedNodeBuilder<T> withFactory(Function<byte[], ? extends T> factory) {
-        builder.withFactory(factory);
-        return this;
+        return withFactoryEx(factory::apply);
     }
 
     public GenericZkBasedNodeBuilder<T>
-            withStringFactory(BiFunction<String, Stat, ? extends T> factory) {
-        builder.withStringFactory(factory);
-        return this;
+            withFactoryEx(ThrowableFunction<byte[], ? extends T, Exception> factory) {
+        return withFactoryEx((b, s) -> factory.apply(b));
     }
 
+    /**
+     * use {@link #withStringFactoryEx}
+     */
+    @Deprecated
+    public GenericZkBasedNodeBuilder<T>
+            withStringFactory(BiFunction<String, Stat, ? extends T> factory) {
+        return withStringFactoryEx(factory::apply);
+    }
+
+    public GenericZkBasedNodeBuilder<T>
+            withStringFactoryEx(ThrowableBiFunction<String, Stat, ? extends T, Exception> factory) {
+        return withFactoryEx((b, s) -> factory.apply(b == null ? null : new String(b), s));
+    }
+
+    /**
+     * use {@link #withStringFactoryEx}
+     */
+    @Deprecated
     public GenericZkBasedNodeBuilder<T> withStringFactory(Function<String, ? extends T> factory) {
-        builder.withStringFactory(factory);
-        return this;
+        return withStringFactoryEx(factory::apply);
+    }
+
+    public GenericZkBasedNodeBuilder<T> withStringFactoryEx(Function<String, ? extends T> factory) {
+        return withStringFactoryEx((b, s) -> factory.apply(b));
     }
 
     public GenericZkBasedNodeBuilder<T> withCacheFactory(Supplier<NodeCache> cacheFactory) {

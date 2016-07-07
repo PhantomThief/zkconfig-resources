@@ -29,6 +29,7 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.slf4j.Logger;
 
+import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -38,7 +39,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedTreeNodeResource.class);
 
-    private final Function<Map<String, ChildData>, T> factory;
+    private final ThrowableFunction<Map<String, ChildData>, T, Exception> factory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final BiConsumer<T, T> onResourceChange;
@@ -47,7 +48,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private volatile TreeCache treeCache;
     private volatile T resource;
 
-    private ZkBasedTreeNodeResource(Function<Map<String, ChildData>, T> factory,
+    private ZkBasedTreeNodeResource(ThrowableFunction<Map<String, ChildData>, T, Exception> factory,
             Supplier<CuratorFramework> curatorFrameworkFactory, String path, Predicate<T> cleanup,
             long waitStopPeriod, BiConsumer<T, T> onResourceChange) {
         this.factory = factory;
@@ -95,7 +96,11 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             synchronized (ZkBasedTreeNodeResource.this) {
                 if (resource == null) {
                     TreeCache cache = treeCache();
-                    resource = doFactory();
+                    try {
+                        resource = doFactory();
+                    } catch (Exception e) {
+                        throw propagate(e);
+                    }
                     cache.getListenable().addListener((zk, event) -> {
                         T oldResource = null;
                         synchronized (ZkBasedTreeNodeResource.this) {
@@ -157,7 +162,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         }
     }
 
-    private T doFactory() {
+    private T doFactory() throws Exception {
         Map<String, ChildData> map = new HashMap<>();
         generateFullTree(map, treeCache, path);
         return factory.apply(map);
@@ -173,7 +178,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     public static final class Builder<E> {
 
-        private Function<Map<String, ChildData>, E> factory;
+        private ThrowableFunction<Map<String, ChildData>, E, Exception> factory;
         private String path;
         private Supplier<CuratorFramework> curatorFrameworkFactory;
         private Predicate<E> cleanup;
@@ -185,19 +190,46 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             return this;
         }
 
+        /**
+         * use {@link #factoryEx}
+         */
+        @Deprecated
         public Builder<E> factory(Function<Map<String, ChildData>, E> factory) {
+            return factoryEx(factory::apply);
+        }
+
+        public Builder<E>
+                factoryEx(ThrowableFunction<Map<String, ChildData>, E, Exception> factory) {
             this.factory = factory;
             return this;
         }
 
+        /**
+         * use {@link #childDataFactoryEx}
+         */
+        @Deprecated
         public Builder<E> childDataFactory(Function<Collection<ChildData>, E> factory) {
-            checkNotNull(factory);
-            return factory(map -> factory.apply(map.values()));
+            return childDataFactoryEx(factory::apply);
         }
 
-        public Builder<E> keysFactory(Function<Collection<String>, E> factory) {
+        public Builder<E>
+                childDataFactoryEx(ThrowableFunction<Collection<ChildData>, E, Exception> factory) {
             checkNotNull(factory);
-            return factory(map -> factory.apply(map.keySet()));
+            return factoryEx(map -> factory.apply(map.values()));
+        }
+
+        /**
+         * use {@link #keysFactoryEx}
+         */
+        @Deprecated
+        public Builder<E> keysFactory(Function<Collection<String>, E> factory) {
+            return keysFactoryEx(factory::apply);
+        }
+
+        public Builder<E>
+                keysFactoryEx(ThrowableFunction<Collection<String>, E, Exception> factory) {
+            checkNotNull(factory);
+            return factoryEx(map -> factory.apply(map.keySet()));
         }
 
         public Builder<E> onResourceChange(BiConsumer<E, E> callback) {
