@@ -82,7 +82,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         countDownLatch.await();
                         treeCache = building;
                     } catch (Throwable e) {
-                        logger.error("Ops.", e);
                         throw propagate(e);
                     }
                 }
