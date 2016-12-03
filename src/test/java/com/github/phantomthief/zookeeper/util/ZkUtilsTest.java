@@ -21,6 +21,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
@@ -29,19 +30,19 @@ import com.google.common.util.concurrent.MoreExecutors;
 /**
  * @author w.vela
  */
-public class ZNodeModifyUtilsTest {
+public class ZkUtilsTest {
 
     private static final int LOOP = 100;
     private static final String TEST_PATH = "/test1/test";
     private static final String TEST_PATH2 = "/test2/test";
 
-    public static com.fasterxml.jackson.databind.ObjectMapper mapper;
+    private static ObjectMapper mapper;
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
     @BeforeClass
     public static void init() throws Exception {
-        mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        mapper = new ObjectMapper();
         testingServer = new TestingServer(true);
         curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
                 new ExponentialBackoffRetry(10000, 20));
@@ -81,15 +82,21 @@ public class ZNodeModifyUtilsTest {
     }
 
     @Test
+    public void testGetAndSet() throws Exception {
+        ZkUtils.setToZk(curatorFramework, "/1", "2".getBytes());
+        assertEquals(ZkUtils.getStringFromZk(curatorFramework, "/1"), "2");
+    }
+
+    @Test
     public void testModify() throws Exception {
-        ZNodeModifyUtils.modify(curatorFramework, TEST_PATH, old -> {
+        ZkUtils.changeZkValue(curatorFramework, TEST_PATH, old -> {
             old.add("1");
             return old;
         }, this::setDecode, this::setEncode);
         assertEquals(setDecode(curatorFramework.getData().forPath(TEST_PATH)),
                 Sets.newHashSet("1"));
 
-        ZNodeModifyUtils.modify(curatorFramework, TEST_PATH, old -> {
+        ZkUtils.changeZkValue(curatorFramework, TEST_PATH, old -> {
             old.remove("1");
             return old;
         }, this::setDecode, this::setEncode);
@@ -101,7 +108,7 @@ public class ZNodeModifyUtilsTest {
         ExecutorService executor = Executors.newFixedThreadPool(100);
         for (int i = 0; i < LOOP; i++) {
             executor.execute(() -> {
-                ZNodeModifyUtils.modify(curatorFramework, TEST_PATH2, old -> old + 1,
+                ZkUtils.changeZkValue(curatorFramework, TEST_PATH2, old -> old + 1,
                         this::intDecode, this::intEncode);
             });
         }
