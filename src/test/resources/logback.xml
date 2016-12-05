@@ -12,13 +12,6 @@
         </encoder>
     </appender>
 
-    <logger
-        name="com.github.phantomthief.zookeeper.util.ZNodeModifyUtils"
-        level="debug"
-        additivity="false">
-        <appender-ref ref="stdout" />
-    </logger>
-
     <root>
         <appender-ref ref="stdout" />
         <level value="warn" />

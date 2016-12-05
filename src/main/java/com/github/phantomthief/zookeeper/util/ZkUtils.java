@@ -23,7 +23,7 @@ import com.github.phantomthief.util.ThrowableFunction;
  */
 public class ZkUtils {
 
-    private static final Logger logger = getLogger(ZNodeModifyUtils.class);
+    private static final Logger logger = getLogger(ZkUtils.class);
 
     private static final long DEFAULT_WAIT = SECONDS.toMillis(1);
     private static final int INFINITY_LOOP = -1;
