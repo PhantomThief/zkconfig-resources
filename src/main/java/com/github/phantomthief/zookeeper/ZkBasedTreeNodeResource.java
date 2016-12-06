@@ -47,6 +47,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private final String path;
     private volatile TreeCache treeCache;
     private volatile T resource;
+    private volatile boolean closed;
 
     private ZkBasedTreeNodeResource(ThrowableFunction<Map<String, ChildData>, T, Exception> factory,
             Supplier<CuratorFramework> curatorFrameworkFactory, String path, Predicate<T> cleanup,
@@ -91,8 +92,14 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     }
 
     public T get() {
+        if (closed) {
+            throw new IllegalStateException("zkNode has been closed.");
+        }
         if (resource == null) {
             synchronized (ZkBasedTreeNodeResource.this) {
+                if (closed) {
+                    throw new IllegalStateException("zkNode has been closed.");
+                }
                 if (resource == null) {
                     TreeCache cache = treeCache();
                     try {
@@ -156,6 +163,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             if (treeCache != null) {
                 treeCache.close();
             }
+            closed = true;
         }
     }
 
