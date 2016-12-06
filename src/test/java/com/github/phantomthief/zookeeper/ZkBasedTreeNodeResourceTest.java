@@ -6,6 +6,8 @@ package com.github.phantomthief.zookeeper;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Map;
@@ -53,8 +55,7 @@ public class ZkBasedTreeNodeResourceTest {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //
-                .path("/test")
-                //
+                .path("/test") //
                 .factory(p -> p.entrySet().stream()
                         .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
                 .build();
@@ -64,4 +65,22 @@ public class ZkBasedTreeNodeResourceTest {
         System.out.println(tree.get());
     }
 
+    @Test
+    public void testClose() throws Exception {
+        ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
+                .<Map<String, String>> newBuilder() //
+                .curator(curatorFramework) //
+                .path("/test") //
+                .factory(p -> p.entrySet().stream()
+                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
+                .build();
+        System.out.println(tree.get());
+        tree.close();
+        try {
+            tree.get();
+            fail();
+        } catch (IllegalStateException e) {
+            assertTrue(true);
+        }
+    }
 }

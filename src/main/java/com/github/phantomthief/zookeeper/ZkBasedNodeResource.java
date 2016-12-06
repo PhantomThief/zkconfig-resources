@@ -47,6 +47,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final Supplier<NodeCache> nodeCache;
     private volatile T resource;
     private volatile boolean emptyLogged = false;
+    private volatile boolean closed = false;
 
     private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
@@ -83,8 +84,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     }
 
     public T get() {
+        if (closed) {
+            throw new IllegalStateException("zkNode has been closed.");
+        }
         if (resource == null) {
             synchronized (ZkBasedNodeResource.this) {
+                if (closed) {
+                    throw new IllegalStateException("zkNode has been closed.");
+                }
                 if (resource == null) {
                     NodeCache cache = nodeCache.get();
                     ChildData currentData = cache.getCurrentData();
@@ -102,7 +109,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         throw propagate(e);
                     }
                     cache.getListenable().addListener(() -> {
-                        T oldResource = null;
+                        T oldResource;
                         synchronized (ZkBasedNodeResource.this) {
                             ChildData data = cache.getCurrentData();
                             oldResource = resource;
@@ -160,6 +167,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             if (resource != null && resource != emptyObject && cleanup != null) {
                 cleanup.test(resource);
             }
+            closed = true;
         }
     }
 
