@@ -108,7 +108,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         throw propagate(e);
                     }
                     cache.getListenable().addListener((zk, event) -> {
-                        T oldResource = null;
+                        T oldResource;
                         synchronized (ZkBasedTreeNodeResource.this) {
                             oldResource = resource;
                             resource = doFactory();
