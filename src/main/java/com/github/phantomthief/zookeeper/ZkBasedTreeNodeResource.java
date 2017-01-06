@@ -104,6 +104,9 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                     TreeCache cache = treeCache();
                     try {
                         resource = doFactory();
+                        if (onResourceChange != null) {
+                            onResourceChange.accept(resource, null);
+                        }
                     } catch (Exception e) {
                         throw propagate(e);
                     }
