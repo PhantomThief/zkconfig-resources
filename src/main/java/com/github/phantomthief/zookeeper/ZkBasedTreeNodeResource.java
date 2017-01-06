@@ -150,7 +150,11 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                                 onResourceChange.accept(currentResource, oldResource);
                             }
                         }).start();
+                return;
             }
+        }
+        if (onResourceChange != null) {
+            onResourceChange.accept(currentResource, oldResource);
         }
     }
 
