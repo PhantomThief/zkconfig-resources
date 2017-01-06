@@ -105,6 +105,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     }
                     try {
                         resource = factory.apply(currentData.getData(), currentData.getStat());
+                        if (onResourceChange != null) {
+                            onResourceChange.accept(resource, emptyObject);
+                        }
                     } catch (Exception e) {
                         throw propagate(e);
                     }
@@ -157,7 +160,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                 onResourceChange.accept(currentResource, oldResource);
                             }
                         }).start();
+                return;
             }
+        }
+        if (onResourceChange != null) {
+            onResourceChange.accept(currentResource, oldResource);
         }
     }
 

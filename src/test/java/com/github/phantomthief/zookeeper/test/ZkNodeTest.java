@@ -3,13 +3,15 @@
  */
 package com.github.phantomthief.zookeeper.test;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -60,10 +62,10 @@ public class ZkNodeTest {
         assertEquals(node.get(), "test1");
 
         curatorFramework.setData().forPath("/test", "test2".getBytes());
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
         System.out.println("current:" + node.get());
         assertEquals(node.get(), "test2");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        sleepUninterruptibly(5, SECONDS);
     }
 
     @Test
@@ -77,13 +79,13 @@ public class ZkNodeTest {
         assertEquals(node.get(), "EMPTY");
 
         curatorFramework.create().creatingParentsIfNeeded().forPath("/test2", "haha".getBytes());
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
         System.out.println("current:" + node.get());
         assertEquals(node.get(), "haha"); //
 
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
         curatorFramework.delete().forPath("/test2");
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
         System.out.println("current:" + node.get());
         assertEquals(node.get(), "EMPTY");
     }
@@ -103,5 +105,74 @@ public class ZkNodeTest {
         } catch (IllegalStateException e) {
             assertTrue(true);
         }
+    }
+
+    @Test
+    public void testDeleteOnChange() throws Exception {
+        AtomicInteger changed = new AtomicInteger();
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
+                .withCacheFactory("/test3", curatorFramework) //
+                .withFactory((Function<byte[], String>) String::new) //
+                .onResourceChange((n, o) -> {
+                    System.out.println("old:" + o + ",new:" + n);
+                    changed.incrementAndGet();
+                }) //
+                .withEmptyObject("EMPTY") //
+                .build();
+        String value = node.get();
+        System.out.println("first empty value:" + value);
+        assertEquals(value, "EMPTY");
+
+        System.out.println("set..");
+        setToZk(curatorFramework, "/test3", "abc".getBytes());
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after set abc:" + value);
+        assertEquals(value, "abc");
+
+        System.out.println("delete...");
+        curatorFramework.delete().forPath("/test3");
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after delete:" + value);
+        assertEquals(value, "EMPTY");
+
+        System.out.println("set..");
+        setToZk(curatorFramework, "/test3", "abc".getBytes());
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after set abc:" + value);
+        assertEquals(value, "abc");
+
+        System.out.println("delete...");
+        curatorFramework.delete().forPath("/test3");
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after delete:" + value);
+        assertEquals(value, "EMPTY");
+
+        System.out.println("set..");
+        setToZk(curatorFramework, "/test3", "abc".getBytes());
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after set abc:" + value);
+        assertEquals(value, "abc");
+
+        System.out.println("set..");
+        setToZk(curatorFramework, "/test3", "abcd".getBytes());
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after set abc:" + value);
+        assertEquals(value, "abcd");
+
+        System.out.println("set..");
+        setToZk(curatorFramework, "/test3", "abcd".getBytes());
+        sleepUninterruptibly(2, SECONDS);
+        value = node.get();
+        System.out.println("after set abc:" + value);
+        assertEquals(value, "abcd");
+
+        System.out.println("changed:" + changed.get());
+        assertTrue(changed.get() == 7);
     }
 }
