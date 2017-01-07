@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
@@ -51,7 +52,7 @@ public class ZkUtils {
                 return null;
             }
             return decoder.apply(bytes);
-        } catch (KeeperException.NoNodeException e) {
+        } catch (NoNodeException e) {
             return null;
         } catch (Exception e) {
             throw propagate(e);
@@ -64,12 +65,33 @@ public class ZkUtils {
         checkNotNull(value);
         try {
             client.setData().forPath(path, value);
-        } catch (KeeperException.NoNodeException e) {
+        } catch (NoNodeException e) {
             try {
                 client.create().creatingParentsIfNeeded().forPath(path, value);
             } catch (Exception e1) {
                 throw propagate(e1);
             }
+        } catch (Exception e) {
+            throw propagate(e);
+        }
+    }
+
+    public static void removeFromZk(CuratorFramework client, String path) {
+        removeFromZk(client, path, false);
+    }
+
+    public static void removeFromZk(CuratorFramework client, String path,
+            boolean recruitDeletedChildren) {
+        checkNotNull(client);
+        checkNotNull(path);
+        try {
+            if (recruitDeletedChildren) {
+                client.delete().deletingChildrenIfNeeded().forPath(path);
+            } else {
+                client.delete().forPath(path);
+            }
+        } catch (NoNodeException e) {
+            logger.debug("no zookeeper path found:{}, ignore deleted.", path);
         } catch (Exception e) {
             throw propagate(e);
         }
@@ -101,7 +123,7 @@ public class ZkUtils {
                 return true;
             } catch (KeeperException.BadVersionException e) {
                 logger.debug("bad version for znode:{}, retry.{}", path, times);
-            } catch (KeeperException.NoNodeException e) {
+            } catch (NoNodeException e) {
                 byte[] newData = changeFunction.apply(null);
                 try {
                     client.create().creatingParentsIfNeeded().forPath(path, newData);
