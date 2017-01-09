@@ -21,6 +21,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -39,14 +41,22 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedNodeResource.class);
 
+    private final Object lock = new Object();
+
     private final ThrowableBiFunction<byte[], Stat, T, Exception> factory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final T emptyObject;
     private final BiConsumer<T, T> onResourceChange;
     private final Supplier<NodeCache> nodeCache;
+
+    @GuardedBy("lock")
     private volatile T resource;
+
+    @GuardedBy("lock")
     private volatile boolean emptyLogged = false;
+
+    @GuardedBy("lock")
     private volatile boolean closed = false;
 
     private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
@@ -88,7 +98,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             throw new IllegalStateException("zkNode has been closed.");
         }
         if (resource == null) {
-            synchronized (ZkBasedNodeResource.this) {
+            synchronized (lock) {
                 if (closed) {
                     throw new IllegalStateException("zkNode has been closed.");
                 }
@@ -113,7 +123,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     }
                     cache.getListenable().addListener(() -> {
                         T oldResource;
-                        synchronized (ZkBasedNodeResource.this) {
+                        synchronized (lock) {
                             ChildData data = cache.getCurrentData();
                             oldResource = resource;
                             if (data != null && data.getData() != null) {
@@ -170,7 +180,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     @Override
     public void close() throws IOException {
-        synchronized (ZkBasedNodeResource.this) {
+        synchronized (lock) {
             if (resource != null && resource != emptyObject && cleanup != null) {
                 cleanup.test(resource);
             }

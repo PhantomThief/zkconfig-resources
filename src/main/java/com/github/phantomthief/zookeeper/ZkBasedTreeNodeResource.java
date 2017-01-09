@@ -24,6 +24,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
@@ -39,14 +41,22 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedTreeNodeResource.class);
 
+    private final Object lock = new Object();
+
     private final ThrowableFunction<Map<String, ChildData>, T, Exception> factory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final BiConsumer<T, T> onResourceChange;
     private final Supplier<CuratorFramework> curatorFrameworkFactory;
     private final String path;
+
+    @GuardedBy("lock")
     private volatile TreeCache treeCache;
+
+    @GuardedBy("lock")
     private volatile T resource;
+
+    @GuardedBy("lock")
     private volatile boolean closed;
 
     private ZkBasedTreeNodeResource(ThrowableFunction<Map<String, ChildData>, T, Exception> factory,
@@ -66,7 +76,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private TreeCache treeCache() {
         if (treeCache == null) {
-            synchronized (ZkBasedTreeNodeResource.this) {
+            synchronized (lock) {
                 if (treeCache == null) {
                     try {
                         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -96,7 +106,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             throw new IllegalStateException("zkNode has been closed.");
         }
         if (resource == null) {
-            synchronized (ZkBasedTreeNodeResource.this) {
+            synchronized (lock) {
                 if (closed) {
                     throw new IllegalStateException("zkNode has been closed.");
                 }
@@ -112,7 +122,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                     }
                     cache.getListenable().addListener((zk, event) -> {
                         T oldResource;
-                        synchronized (ZkBasedTreeNodeResource.this) {
+                        synchronized (lock) {
                             oldResource = resource;
                             resource = doFactory();
                             cleanup(resource, oldResource);
@@ -163,7 +173,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     @Override
     public void close() throws IOException {
-        synchronized (ZkBasedTreeNodeResource.this) {
+        synchronized (lock) {
             if (resource != null && cleanup != null) {
                 cleanup.test(resource);
             }
