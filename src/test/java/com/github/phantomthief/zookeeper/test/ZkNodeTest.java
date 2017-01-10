@@ -3,10 +3,12 @@
  */
 package com.github.phantomthief.zookeeper.test;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
 import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -174,5 +176,26 @@ public class ZkNodeTest {
 
         System.out.println("changed:" + changed.get());
         assertTrue(changed.get() == 7);
+    }
+
+    @Test
+    public void testExists() {
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
+                .withCacheFactory("/test5", curatorFramework) //
+                .withFactory((Function<byte[], String>) String::new) //
+                .withEmptyObject("EMPTY") //
+                .build();
+
+        assertFalse(node.zkNodeExists());
+
+        setToZk(curatorFramework, "/test5", "abc".getBytes());
+        sleepUninterruptibly(1, SECONDS);
+
+        assertTrue(node.zkNodeExists());
+
+        removeFromZk(curatorFramework, "/test5");
+        sleepUninterruptibly(1, SECONDS);
+
+        assertFalse(node.zkNodeExists());
     }
 }

@@ -60,6 +60,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     @GuardedBy("lock")
     private volatile boolean closed = false;
 
+    private volatile boolean zkNodeExists;
+
     private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
             BiConsumer<T, T> onResourceChange, T emptyObject) {
@@ -94,9 +96,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
-    @Nullable
-    public T emptyObject() {
-        return emptyObject;
+    public boolean zkNodeExists() {
+        get();
+        return zkNodeExists;
     }
 
     @Nullable
@@ -113,6 +115,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     NodeCache cache = nodeCache.get();
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
+                        zkNodeExists = false;
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
                             logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
                                     emptyObject);
@@ -120,6 +123,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         }
                         return emptyObject;
                     }
+                    zkNodeExists = true;
                     try {
                         resource = factory.apply(currentData.getData(), currentData.getStat());
                         if (onResourceChange != null) {
@@ -134,8 +138,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             ChildData data = cache.getCurrentData();
                             oldResource = resource;
                             if (data != null && data.getData() != null) {
+                                zkNodeExists = true;
                                 resource = factory.apply(data.getData(), data.getStat());
                             } else {
+                                zkNodeExists = false;
                                 resource = null;
                                 emptyLogged = false;
                             }
