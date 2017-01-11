@@ -186,16 +186,16 @@ public class ZkNodeTest {
                 .withEmptyObject("EMPTY") //
                 .build();
 
-        assertFalse(node.zkNodeExists());
+        assertFalse(node.getWithExistInfo().getSecond());
 
         setToZk(curatorFramework, "/test5", "abc".getBytes());
         sleepUninterruptibly(1, SECONDS);
 
-        assertTrue(node.zkNodeExists());
+        assertTrue(node.getWithExistInfo().getSecond());
 
         removeFromZk(curatorFramework, "/test5");
         sleepUninterruptibly(1, SECONDS);
 
-        assertFalse(node.zkNodeExists());
+        assertFalse(node.getWithExistInfo().getSecond());
     }
 }
