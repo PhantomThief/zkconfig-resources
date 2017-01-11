@@ -3,6 +3,7 @@
  */
 package com.github.phantomthief.zookeeper;
 
+import static com.github.phantomthief.tuple.Tuple.tuple;
 import static com.github.phantomthief.util.MoreSuppliers.lazy;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
@@ -21,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -30,6 +32,7 @@ import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
+import com.github.phantomthief.tuple.TwoTuple;
 import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -58,6 +61,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     @GuardedBy("lock")
     private volatile boolean closed = false;
+
+    private volatile boolean zkNodeExists;
 
     private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
@@ -93,6 +98,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
+    /**
+     * @return {@link com.github.phantomthief.tuple.TwoTuple#second} is {@code true} if target zk node exists.
+     */
+    public TwoTuple<T, Boolean> getWithExistInfo() {
+        T t = get();
+        return tuple(t, zkNodeExists);
+    }
+
+    @Nullable
     public T get() {
         if (closed) {
             throw new IllegalStateException("zkNode has been closed.");
@@ -106,6 +120,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     NodeCache cache = nodeCache.get();
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
+                        zkNodeExists = false;
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
                             logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
                                     emptyObject);
@@ -113,6 +128,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         }
                         return emptyObject;
                     }
+                    zkNodeExists = true;
                     try {
                         resource = factory.apply(currentData.getData(), currentData.getStat());
                         if (onResourceChange != null) {
@@ -127,8 +143,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             ChildData data = cache.getCurrentData();
                             oldResource = resource;
                             if (data != null && data.getData() != null) {
+                                zkNodeExists = true;
                                 resource = factory.apply(data.getData(), data.getStat());
                             } else {
+                                zkNodeExists = false;
                                 resource = null;
                                 emptyLogged = false;
                             }
