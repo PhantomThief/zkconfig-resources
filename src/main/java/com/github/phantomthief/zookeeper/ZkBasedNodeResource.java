@@ -22,7 +22,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -106,7 +105,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         return tuple(t, zkNodeExists);
     }
 
-    @Nullable
     public T get() {
         if (closed) {
             throw new IllegalStateException("zkNode has been closed.");
