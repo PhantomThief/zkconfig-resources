@@ -99,10 +99,17 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     /**
      * @return {@link com.github.phantomthief.tuple.TwoTuple#second} is {@code true} if target zk node exists.
+     * use {@link #zkNode} instead
      */
+    @Deprecated
     public TwoTuple<T, Boolean> getWithExistInfo() {
         T t = get();
         return tuple(t, zkNodeExists);
+    }
+
+    public ZkNode<T> zkNode() {
+        T t = get();
+        return new ZkNode<>(t, zkNodeExists);
     }
 
     public T get() {
