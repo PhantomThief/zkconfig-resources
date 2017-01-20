@@ -5,10 +5,17 @@ import static com.google.common.base.Throwables.propagate;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.Stream.empty;
+import static org.apache.commons.lang3.StringUtils.removeEnd;
+import static org.apache.commons.lang3.StringUtils.removeStart;
+import static org.apache.curator.utils.ZKPaths.makePath;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
@@ -145,5 +152,30 @@ public class ZkUtils {
         } while (times < retryTimes || retryTimes == INFINITY_LOOP);
         logger.warn("fail to change znode:{}, retry times:{}", path, times);
         return false;
+    }
+
+    public static Stream<String> getAllChildren(CuratorFramework curator, String parentPath) {
+        String parentPath0 = removeEnd(parentPath, "/");
+        return getAllChildren0(curator, parentPath0).map(p -> removeStart(p, parentPath0));
+    }
+
+    private static Stream<String> getAllChildren0(CuratorFramework curator, String parentPath) {
+        try {
+            List<String> children = curator.getChildren().forPath(parentPath);
+            if (children.isEmpty()) {
+                return children.stream();
+            } else {
+                Stream<String> original = children.stream()
+                        .map(child -> makePath(parentPath, child));
+                return concat(original,
+                        children.stream() //
+                                .map(child -> makePath(parentPath, child)) //
+                                .flatMap(path -> getAllChildren0(curator, path)));
+            }
+        } catch (NoNodeException e) {
+            return empty();
+        } catch (Exception e) {
+            throw propagate(e);
+        }
     }
 }
