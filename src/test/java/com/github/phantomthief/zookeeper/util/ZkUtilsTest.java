@@ -116,6 +116,20 @@ public class ZkUtilsTest {
         assertEquals(intDecode(curatorFramework.getData().forPath(TEST_PATH2)), LOOP);
     }
 
+    @Test
+    public void testGetAllChilren() {
+        ZkUtils.setToZk(curatorFramework, "/all/test1/a", "a".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test1/b", "b".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test1/b/c", "c".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test1/b/c/c1", "c1".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test1/b/c/c2", "c2".getBytes());
+        ZkUtils.getAllChildren(curatorFramework, "/all/test1").forEach(System.out::println);
+        System.out.println("no end /");
+        ZkUtils.getAllChildren(curatorFramework, "/all/test1/").forEach(System.out::println);
+        System.out.println("no path");
+        ZkUtils.getAllChildren(curatorFramework, "/all/xyz/").forEach(System.out::println);
+    }
+
     private int intDecode(byte[] raw) {
         if (raw == null) {
             return 0;
