@@ -3,7 +3,6 @@
  */
 package com.github.phantomthief.zookeeper;
 
-import static com.github.phantomthief.tuple.Tuple.tuple;
 import static com.github.phantomthief.util.MoreSuppliers.lazy;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
@@ -31,7 +30,6 @@ import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
-import com.github.phantomthief.tuple.TwoTuple;
 import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -95,16 +93,6 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     e.toString());
             return null;
         }
-    }
-
-    /**
-     * @return {@link com.github.phantomthief.tuple.TwoTuple#second} is {@code true} if target zk node exists.
-     * use {@link #zkNode} instead
-     */
-    @Deprecated
-    public TwoTuple<T, Boolean> getWithExistInfo() {
-        T t = get();
-        return tuple(t, zkNodeExists);
     }
 
     public ZkNode<T> zkNode() {
