@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -31,6 +30,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
 import com.github.phantomthief.util.ThrowableBiFunction;
+import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -297,14 +297,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         /**
-         * using {@link #withCleanupConsumer(Consumer)}
+         * using {@link #withCleanupConsumer(ThrowableConsumer)}
          */
         @Deprecated
-        public <E1> Builder<E1> withCleanup(Consumer<? super E1> cleanup) {
+        public <E1> Builder<E1> withCleanup(ThrowableConsumer<? super E1, Throwable> cleanup) {
             return withCleanupConsumer(cleanup);
         }
 
-        public <E1> Builder<E1> withCleanupConsumer(Consumer<? super E1> cleanup) {
+        public <E1> Builder<E1>
+                withCleanupConsumer(ThrowableConsumer<? super E1, Throwable> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.cleanup = t -> {
                 try {

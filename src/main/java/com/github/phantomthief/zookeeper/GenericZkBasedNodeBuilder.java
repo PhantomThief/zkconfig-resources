@@ -2,7 +2,6 @@ package com.github.phantomthief.zookeeper;
 
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -12,6 +11,7 @@ import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 
 import com.github.phantomthief.util.ThrowableBiFunction;
+import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource.Builder;
 
@@ -82,7 +82,8 @@ public class GenericZkBasedNodeBuilder<T> {
         return withStringFactoryEx(factory::apply);
     }
 
-    public GenericZkBasedNodeBuilder<T> withStringFactoryEx(Function<String, ? extends T> factory) {
+    public GenericZkBasedNodeBuilder<T>
+            withStringFactoryEx(ThrowableFunction<String, ? extends T, Exception> factory) {
         return withStringFactoryEx((b, s) -> factory.apply(b));
     }
 
@@ -102,7 +103,8 @@ public class GenericZkBasedNodeBuilder<T> {
         return this;
     }
 
-    public GenericZkBasedNodeBuilder<T> withCleanupConsumer(Consumer<? super T> cleanup) {
+    public GenericZkBasedNodeBuilder<T>
+            withCleanupConsumer(ThrowableConsumer<? super T, Throwable> cleanup) {
         builder.withCleanupConsumer(cleanup);
         return this;
     }
