@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -31,6 +30,7 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.slf4j.Logger;
 
+import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -269,7 +269,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
             return this;
         }
 
-        public Builder<E> cleanup(Consumer<E> cleanup) {
+        public Builder<E> cleanup(ThrowableConsumer<E, Throwable> cleanup) {
             this.cleanup = t -> {
                 try {
                     cleanup.accept(t);
