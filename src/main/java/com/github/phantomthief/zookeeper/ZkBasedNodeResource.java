@@ -199,6 +199,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static final class Builder<E> {
 
