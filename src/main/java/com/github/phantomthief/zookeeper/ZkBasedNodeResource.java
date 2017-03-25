@@ -20,6 +20,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.CheckReturnValue;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -76,6 +77,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         return new Builder<>();
     }
 
+    @CheckReturnValue
     public static <T> GenericZkBasedNodeBuilder<T> newGenericBuilder() {
         return new GenericZkBasedNodeBuilder<>(newBuilder());
     }
@@ -217,10 +219,12 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          * use {@link #withFactoryEx}
          */
         @Deprecated
+        @CheckReturnValue
         public <E1> Builder<E1> withFactory(BiFunction<byte[], Stat, ? extends E1> factory) {
             return withFactoryEx(factory::apply);
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1>
                 withFactoryEx(ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
@@ -228,6 +232,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             return thisBuilder;
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1> onResourceChange(BiConsumer<? super E1, ? super E1> callback) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.onResourceChange = (BiConsumer<E1, E1>) callback;
@@ -238,10 +243,12 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          * use {@link #withFactoryEx}
          */
         @Deprecated
+        @CheckReturnValue
         public <E1> Builder<E1> withFactory(Function<byte[], ? extends E1> factory) {
             return withFactoryEx(factory::apply);
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1>
                 withFactoryEx(ThrowableFunction<byte[], ? extends E1, Exception> factory) {
             return withFactoryEx((b, s) -> factory.apply(b));
@@ -251,10 +258,12 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          * use {@link #withStringFactoryEx}
          */
         @Deprecated
+        @CheckReturnValue
         public <E1> Builder<E1> withStringFactory(BiFunction<String, Stat, ? extends E1> factory) {
             return withStringFactoryEx(factory::apply);
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1> withStringFactoryEx(
                 ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
             return withFactoryEx((b, s) -> factory.apply(b == null ? null : new String(b), s));
@@ -264,24 +273,29 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          * use {@link #withStringFactoryEx}
          */
         @Deprecated
+        @CheckReturnValue
         public <E1> Builder<E1> withStringFactory(Function<String, ? extends E1> factory) {
             return withStringFactoryEx(factory::apply);
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1>
                 withStringFactoryEx(ThrowableFunction<String, ? extends E1, Exception> factory) {
             return withStringFactoryEx((b, s) -> factory.apply(b));
         }
 
+        @CheckReturnValue
         public Builder<E> withCacheFactory(Supplier<NodeCache> cacheFactory) {
             this.cacheFactory = cacheFactory;
             return this;
         }
 
+        @CheckReturnValue
         public Builder<E> withCacheFactory(String path, CuratorFramework curator) {
             return withCacheFactory(path, () -> curator);
         }
 
+        @CheckReturnValue
         public Builder<E> withCacheFactory(String path, Supplier<CuratorFramework> curatorFactory) {
             this.cacheFactory = () -> {
                 CuratorFramework thisClient = curatorFactory.get();
@@ -304,10 +318,12 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          * using {@link #withCleanupConsumer(ThrowableConsumer)}
          */
         @Deprecated
+        @CheckReturnValue
         public <E1> Builder<E1> withCleanup(ThrowableConsumer<? super E1, Throwable> cleanup) {
             return withCleanupConsumer(cleanup);
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1>
                 withCleanupConsumer(ThrowableConsumer<? super E1, Throwable> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
@@ -327,21 +343,25 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          * using {@link #withCleanupPredicate(Predicate)}
          */
         @Deprecated
+        @CheckReturnValue
         public <E1> Builder<E1> withCleanup(Predicate<? super E1> cleanup) {
             return withCleanupPredicate(cleanup);
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1> withCleanupPredicate(Predicate<? super E1> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.cleanup = (Predicate<E1>) cleanup;
             return thisBuilder;
         }
 
+        @CheckReturnValue
         public Builder<E> withWaitStopPeriod(long waitStopPeriod) {
             this.waitStopPeriod = waitStopPeriod;
             return this;
         }
 
+        @CheckReturnValue
         public <E1> Builder<E1> withEmptyObject(E1 emptyObject) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.emptyObject = emptyObject;
