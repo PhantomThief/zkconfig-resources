@@ -185,6 +185,10 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         }
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
     private T doFactory() throws Exception {
         Map<String, ChildData> map = new HashMap<>();
         generateFullTree(map, treeCache, path);
