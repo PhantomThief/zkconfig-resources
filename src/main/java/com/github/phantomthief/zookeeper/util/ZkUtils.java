@@ -1,7 +1,7 @@
 package com.github.phantomthief.zookeeper.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Throwables.propagate;
+import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -10,6 +10,7 @@ import static java.util.stream.Stream.empty;
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.apache.commons.lang3.StringUtils.removeStart;
 import static org.apache.curator.utils.ZKPaths.makePath;
+import static org.apache.zookeeper.CreateMode.PERSISTENT;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
@@ -18,6 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
@@ -62,24 +64,33 @@ public class ZkUtils {
         } catch (NoNodeException e) {
             return null;
         } catch (Exception e) {
-            throw propagate(e);
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 
     public static void setToZk(CuratorFramework client, String path, byte[] value) {
+        setToZk(client, path, value, PERSISTENT);
+    }
+
+    public static void setToZk(CuratorFramework client, String path, byte[] value,
+            CreateMode createMode) {
         checkNotNull(client);
         checkNotNull(path);
         checkNotNull(value);
+        checkNotNull(createMode);
         try {
             client.setData().forPath(path, value);
         } catch (NoNodeException e) {
             try {
-                client.create().creatingParentsIfNeeded().forPath(path, value);
+                client.create().creatingParentsIfNeeded().withMode(createMode).forPath(path, value);
             } catch (Exception e1) {
-                throw propagate(e1);
+                throwIfUnchecked(e1);
+                throw new RuntimeException(e1);
             }
         } catch (Exception e) {
-            throw propagate(e);
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -100,7 +111,8 @@ public class ZkUtils {
         } catch (NoNodeException e) {
             logger.debug("no zookeeper path found:{}, ignore deleted.", path);
         } catch (Exception e) {
-            throw propagate(e);
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -175,7 +187,8 @@ public class ZkUtils {
         } catch (NoNodeException e) {
             return empty();
         } catch (Exception e) {
-            throw propagate(e);
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 }
