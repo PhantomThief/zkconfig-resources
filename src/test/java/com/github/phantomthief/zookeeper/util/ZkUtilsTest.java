@@ -3,6 +3,7 @@
  */
 package com.github.phantomthief.zookeeper.util;
 
+import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.junit.Assert.assertEquals;
 
@@ -23,7 +24,6 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -62,14 +62,16 @@ public class ZkUtilsTest {
             try {
                 return (T) collectionType.newInstance();
             } catch (Exception e) {
-                throw Throwables.propagate(e);
+                throwIfUnchecked(e);
+                throw new RuntimeException(e);
             }
         }
         try {
             return (T) mapper.readValue(json, TypeFactory.defaultInstance()
                     .constructCollectionType(collectionType, valueType));
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -77,7 +79,8 @@ public class ZkUtilsTest {
         try {
             return mapper.writeValueAsString(obj);
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
         }
     }
 

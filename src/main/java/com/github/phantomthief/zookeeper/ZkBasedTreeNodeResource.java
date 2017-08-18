@@ -4,7 +4,7 @@
 package com.github.phantomthief.zookeeper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Throwables.propagate;
+import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -94,7 +94,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         countDownLatch.await();
                         treeCache = building;
                     } catch (Throwable e) {
-                        throw propagate(e);
+                        throwIfUnchecked(e);
+                        throw new RuntimeException(e);
                     }
                 }
             }
@@ -119,7 +120,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                             onResourceChange.accept(resource, null);
                         }
                     } catch (Exception e) {
-                        throw propagate(e);
+                        throwIfUnchecked(e);
+                        throw new RuntimeException(e);
                     }
                     cache.getListenable().addListener((zk, event) -> {
                         T oldResource;
@@ -337,7 +339,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         try {
                             ((Closeable) t).close();
                         } catch (Throwable e) {
-                            throw propagate(e);
+                            throwIfUnchecked(e);
+                            throw new RuntimeException(e);
                         }
                     }
                 });

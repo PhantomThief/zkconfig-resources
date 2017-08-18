@@ -6,6 +6,7 @@ package com.github.phantomthief.zookeeper;
 import static com.github.phantomthief.util.MoreSuppliers.lazy;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
+import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -130,7 +131,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             onResourceChange.accept(resource, emptyObject);
                         }
                     } catch (Exception e) {
-                        throw propagate(e);
+                        throwIfUnchecked(e);
+                        throw new RuntimeException(e);
                     }
                     cache.getListenable().addListener(() -> {
                         T oldResource;
@@ -308,7 +310,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     buildingCache.rebuild();
                     return buildingCache;
                 } catch (Throwable e) {
-                    throw propagate(e);
+                    throwIfUnchecked(e);
+                    throw new RuntimeException(e);
                 }
             };
             return this;
