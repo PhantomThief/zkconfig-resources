@@ -62,6 +62,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private volatile boolean closed = false;
 
     private volatile boolean zkNodeExists;
+    
+    private volatile boolean hasAddListener = false;
 
     private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
             Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
@@ -134,22 +136,25 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         throwIfUnchecked(e);
                         throw new RuntimeException(e);
                     }
-                    cache.getListenable().addListener(() -> {
-                        T oldResource;
-                        synchronized (lock) {
-                            ChildData data = cache.getCurrentData();
-                            oldResource = resource;
-                            if (data != null && data.getData() != null) {
-                                zkNodeExists = true;
-                                resource = factory.apply(data.getData(), data.getStat());
-                            } else {
-                                zkNodeExists = false;
-                                resource = null;
-                                emptyLogged = false;
+                    if (!hasAddListener) {
+                        cache.getListenable().addListener(() -> {
+                            T oldResource;
+                            synchronized (lock) {
+                                ChildData data = cache.getCurrentData();
+                                oldResource = resource;
+                                if (data != null && data.getData() != null) {
+                                    zkNodeExists = true;
+                                    resource = factory.apply(data.getData(), data.getStat());
+                                } else {
+                                    zkNodeExists = false;
+                                    resource = null;
+                                    emptyLogged = false;
+                                }
+                                cleanup(resource, oldResource, cache);
                             }
-                            cleanup(resource, oldResource, cache);
-                        }
-                    });
+                        });
+                        hasAddListener = true;
+                    }
                 }
             }
         }
