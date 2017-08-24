@@ -9,6 +9,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.commons.lang3.StringUtils.removeStart;
+import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.CONNECTION_LOST;
 import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.INITIALIZED;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -127,6 +128,9 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                     }
                     if (!hasAddListener) {
                         cache.getListenable().addListener((zk, event) -> {
+                            if (event.getType() == CONNECTION_LOST) {
+                                return;
+                            }
                             T oldResource;
                             synchronized (lock) {
                                 oldResource = resource;
