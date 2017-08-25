@@ -60,6 +60,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     @GuardedBy("lock")
     private volatile boolean closed;
 
+    private volatile boolean hasAddListener = false;
+
     private ZkBasedTreeNodeResource(ThrowableFunction<Map<String, ChildData>, T, Exception> factory,
             Supplier<CuratorFramework> curatorFrameworkFactory, String path, Predicate<T> cleanup,
             long waitStopPeriod, BiConsumer<T, T> onResourceChange) {
@@ -123,14 +125,17 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         throwIfUnchecked(e);
                         throw new RuntimeException(e);
                     }
-                    cache.getListenable().addListener((zk, event) -> {
-                        T oldResource;
-                        synchronized (lock) {
-                            oldResource = resource;
-                            resource = doFactory();
-                            cleanup(resource, oldResource);
-                        }
-                    });
+                    if (!hasAddListener) {
+                        cache.getListenable().addListener((zk, event) -> {
+                            T oldResource;
+                            synchronized (lock) {
+                                oldResource = resource;
+                                resource = doFactory();
+                                cleanup(resource, oldResource);
+                            }
+                        });
+                        hasAddListener = true;
+                    }
                 }
             }
         }
