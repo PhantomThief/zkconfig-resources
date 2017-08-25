@@ -36,6 +36,10 @@
         </developerConnection>
     </scm>
 
+    <properties>
+        <curator.version>4.0.0</curator.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.github.phantomthief</groupId>
@@ -50,7 +54,7 @@
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-recipes</artifactId>
-            <version>2.11.0</version>
+            <version>[${curator.version}]</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -72,7 +76,7 @@
         <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
-            <version>2.11.0</version>
+            <version>${curator.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
