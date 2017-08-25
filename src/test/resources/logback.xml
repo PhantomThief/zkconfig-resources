@@ -14,6 +14,6 @@
 
     <root>
         <appender-ref ref="stdout" />
-        <level value="warn" />
+        <level value="info" />
     </root>
 </configuration>
