@@ -28,6 +28,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
@@ -63,8 +64,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private volatile boolean closed = false;
 
     private volatile boolean zkNodeExists;
-    
+
     private volatile boolean hasAddListener = false;
+    private volatile Runnable nodeCacheRemoveListener;
 
     private ZkBasedNodeResource(Builder<T> builder) {
         this.factory = builder.factory;
@@ -137,7 +139,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         throw new RuntimeException(e);
                     }
                     if (!hasAddListener) {
-                        cache.getListenable().addListener(() -> {
+                        NodeCacheListener nodeCacheListener = () -> {
                             T oldResource;
                             synchronized (lock) {
                                 ChildData data = cache.getCurrentData();
@@ -152,7 +154,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                 }
                                 cleanup(resource, oldResource, cache);
                             }
-                        });
+                        };
+                        cache.getListenable().addListener(nodeCacheListener);
+                        nodeCacheRemoveListener = () -> cache.getListenable()
+                                .removeListener(nodeCacheListener);
                         hasAddListener = true;
                     }
                 }
@@ -203,6 +208,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         synchronized (lock) {
             if (nodeCacheShutdown != null) {
                 nodeCacheShutdown.run();
+            }
+            if (nodeCacheRemoveListener != null) {
+                nodeCacheRemoveListener.run();
             }
             if (resource != null && resource != emptyObject && cleanup != null) {
                 cleanup.test(resource);
