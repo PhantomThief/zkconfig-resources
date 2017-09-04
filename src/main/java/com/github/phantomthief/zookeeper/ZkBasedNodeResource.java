@@ -51,6 +51,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final T emptyObject;
     private final BiConsumer<T, T> onResourceChange;
     private final Supplier<NodeCache> nodeCache;
+    private final Runnable nodeCacheShutdown;
 
     @GuardedBy("lock")
     private volatile T resource;
@@ -71,6 +72,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         this.waitStopPeriod = builder.waitStopPeriod;
         this.emptyObject = builder.emptyObject;
         this.onResourceChange = builder.onResourceChange;
+        this.nodeCacheShutdown = builder.nodeCacheShutdown;
         this.nodeCache = lazy(builder.cacheFactory);
     }
 
@@ -199,6 +201,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     @Override
     public void close() throws IOException {
         synchronized (lock) {
+            if (nodeCacheShutdown != null) {
+                nodeCacheShutdown.run();
+            }
             if (resource != null && resource != emptyObject && cleanup != null) {
                 cleanup.test(resource);
             }
@@ -219,6 +224,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private long waitStopPeriod;
         private E emptyObject;
         private BiConsumer<E, E> onResourceChange;
+        private Runnable nodeCacheShutdown;
 
         /**
          * use {@link #withFactoryEx}
@@ -311,6 +317,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                 try {
                     buildingCache.start();
                     buildingCache.rebuild();
+                    this.nodeCacheShutdown = () -> {
+                        try {
+                            buildingCache.close();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    };
                     return buildingCache;
                 } catch (Throwable e) {
                     throwIfUnchecked(e);
