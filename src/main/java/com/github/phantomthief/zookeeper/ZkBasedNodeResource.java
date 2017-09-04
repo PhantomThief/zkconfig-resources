@@ -65,15 +65,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     
     private volatile boolean hasAddListener = false;
 
-    private ZkBasedNodeResource(ThrowableBiFunction<byte[], Stat, T, Exception> factory,
-            Supplier<NodeCache> cacheFactory, Predicate<T> cleanup, long waitStopPeriod,
-            BiConsumer<T, T> onResourceChange, T emptyObject) {
-        this.factory = factory;
-        this.cleanup = cleanup;
-        this.waitStopPeriod = waitStopPeriod;
-        this.emptyObject = emptyObject;
-        this.onResourceChange = onResourceChange;
-        this.nodeCache = lazy(cacheFactory);
+    private ZkBasedNodeResource(Builder<T> builder) {
+        this.factory = builder.factory;
+        this.cleanup = builder.cleanup;
+        this.waitStopPeriod = builder.waitStopPeriod;
+        this.emptyObject = builder.emptyObject;
+        this.onResourceChange = builder.onResourceChange;
+        this.nodeCache = lazy(builder.cacheFactory);
     }
 
     public static Builder<Object> newBuilder() {
@@ -378,8 +376,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
         public <E1> ZkBasedNodeResource<E1> build() {
             ensure();
-            return new ZkBasedNodeResource(factory, cacheFactory, cleanup, waitStopPeriod,
-                    onResourceChange, emptyObject);
+            return new ZkBasedNodeResource(this);
         }
 
         private void ensure() {
