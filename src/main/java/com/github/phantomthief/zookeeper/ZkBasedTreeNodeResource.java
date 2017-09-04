@@ -64,15 +64,13 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private volatile boolean hasAddListener = false;
 
-    private ZkBasedTreeNodeResource(ThrowableFunction<Map<String, ChildData>, T, Exception> factory,
-            Supplier<CuratorFramework> curatorFrameworkFactory, String path, Predicate<T> cleanup,
-            long waitStopPeriod, BiConsumer<T, T> onResourceChange) {
-        this.factory = factory;
-        this.cleanup = cleanup;
-        this.path = path;
-        this.waitStopPeriod = waitStopPeriod;
-        this.curatorFrameworkFactory = curatorFrameworkFactory;
-        this.onResourceChange = onResourceChange;
+    private ZkBasedTreeNodeResource(Builder<T> builder) {
+        this.factory = builder.factory;
+        this.cleanup = builder.cleanup;
+        this.path = builder.path;
+        this.waitStopPeriod = builder.waitStopPeriod;
+        this.curatorFrameworkFactory = builder.curatorFrameworkFactory;
+        this.onResourceChange = builder.onResourceChange;
     }
 
     public static <T> Builder<T> newBuilder() {
@@ -327,8 +325,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
         public ZkBasedTreeNodeResource<E> build() {
             ensure();
-            return new ZkBasedTreeNodeResource<>(factory, curatorFrameworkFactory, path, cleanup,
-                    waitStopPeriod, onResourceChange);
+            return new ZkBasedTreeNodeResource<>(this);
         }
 
         private void ensure() {
