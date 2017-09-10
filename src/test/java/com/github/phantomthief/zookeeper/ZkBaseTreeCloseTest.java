@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.github.phantomthief.util.ThrowableFunction;
 
 /**
- * @author w.vela <wangtianzhou@kuaishou.com>
+ * @author w.vela
  * Created on 2017-09-04.
  */
 public class ZkBaseTreeCloseTest extends BaseTest {
