@@ -22,6 +22,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
@@ -79,18 +80,26 @@ public class ZkUtils {
         checkNotNull(path);
         checkNotNull(value);
         checkNotNull(createMode);
-        try {
-            client.setData().forPath(path, value);
-        } catch (NoNodeException e) {
+        int retryTimes = 0;
+        while (retryTimes++ < 3) {
             try {
-                client.create().creatingParentsIfNeeded().withMode(createMode).forPath(path, value);
-            } catch (Exception e1) {
-                throwIfUnchecked(e1);
-                throw new RuntimeException(e1);
+                client.setData().forPath(path, value);
+                break;
+            } catch (NoNodeException e) {
+                try {
+                    client.create().creatingParentsIfNeeded().withMode(createMode)
+                          .forPath(path, value);
+                    break;
+                } catch (NodeExistsException retry) {
+                    continue;
+                } catch (Exception toThrow) {
+                    throwIfUnchecked(toThrow);
+                    throw new RuntimeException(toThrow);
+                }
+            } catch (Exception toThrow) {
+                throwIfUnchecked(toThrow);
+                throw new RuntimeException(toThrow);
             }
-        } catch (Exception e) {
-            throwIfUnchecked(e);
-            throw new RuntimeException(e);
         }
     }
 
@@ -151,7 +160,7 @@ public class ZkUtils {
                                 Arrays.toString(newData));
                     }
                     return true;
-                } catch (KeeperException.NodeExistsException ex) {
+                } catch (NodeExistsException ex) {
                     logger.debug("node exist for znode:{}, retry.{}", path, times);
                 } catch (Exception ex) {
                     logger.error("Ops.{}/{}", path, times, ex);
