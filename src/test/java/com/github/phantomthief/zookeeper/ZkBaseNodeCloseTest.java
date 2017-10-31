@@ -2,12 +2,13 @@ package com.github.phantomthief.zookeeper;
 
 import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,11 +48,6 @@ public class ZkBaseNodeCloseTest extends BaseTest {
         }
         setToZk(curatorFramework, "/test", "test3".getBytes());
         SECONDS.sleep(10);
-        try {
-            testNode.get();
-            fail();
-        } catch (IllegalStateException e) {
-            // ignore
-        }
+        assertThrows(IllegalStateException.class, testNode::get);
     }
 }

@@ -6,8 +6,8 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryForever;
 import org.apache.curator.test.TestingServer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * @author w.vela
@@ -15,10 +15,10 @@ import org.junit.BeforeClass;
  */
 public class BaseTest {
 
-    protected static TestingServer testingServer;
-    protected static CuratorFramework curatorFramework;
+    static TestingServer testingServer;
+    static CuratorFramework curatorFramework;
 
-    @BeforeClass
+    @BeforeAll
     public static void init() throws Exception {
         testingServer = new TestingServer(true);
         curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
@@ -33,7 +33,7 @@ public class BaseTest {
         curatorFramework.create().forPath("/test/test3/test33", "test33".getBytes());
     }
 
-    @AfterClass
+    @AfterAll
     public static void destroy() throws IOException {
         curatorFramework.close();
         testingServer.close();

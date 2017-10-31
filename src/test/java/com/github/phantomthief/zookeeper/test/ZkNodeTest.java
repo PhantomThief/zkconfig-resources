@@ -7,10 +7,10 @@ import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
 import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,22 +20,22 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.test.TestingServer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource;
 
 /**
  * @author w.vela
  */
-public class ZkNodeTest {
+class ZkNodeTest {
 
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
-    @BeforeClass
-    public static void init() throws Exception {
+    @BeforeAll
+    static void init() throws Exception {
         testingServer = new TestingServer(true);
         curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
                 new ExponentialBackoffRetry(10000, 20));
@@ -43,14 +43,14 @@ public class ZkNodeTest {
         curatorFramework.create().forPath("/test", "test1".getBytes());
     }
 
-    @AfterClass
-    public static void destroy() throws IOException {
+    @AfterAll
+    static void destroy() throws IOException {
         curatorFramework.close();
         testingServer.close();
     }
 
     @Test
-    public void testChange() throws Exception {
+    void testChange() throws Exception {
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
                 .withCacheFactory("/test", curatorFramework) //
                 .withFactory((Function<byte[], String>) String::new) //
@@ -71,7 +71,7 @@ public class ZkNodeTest {
     }
 
     @Test
-    public void testEmpty() throws Exception {
+    void testEmpty() throws Exception {
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
                 .withCacheFactory("/test2", curatorFramework) //
                 .withFactory((Function<byte[], String>) String::new) //
@@ -93,7 +93,7 @@ public class ZkNodeTest {
     }
 
     @Test
-    public void testClosed() throws Exception {
+    void testClosed() throws Exception {
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
                 .withCacheFactory("/test2", curatorFramework) //
                 .withFactory((Function<byte[], String>) String::new) //
@@ -101,16 +101,11 @@ public class ZkNodeTest {
                 .build();
         assertEquals(node.get(), "EMPTY");
         node.close();
-        try {
-            node.get();
-            fail();
-        } catch (IllegalStateException e) {
-            assertTrue(true);
-        }
+        assertThrows(IllegalStateException.class, node::get);
     }
 
     @Test
-    public void testDeleteOnChange() throws Exception {
+    void testDeleteOnChange() throws Exception {
         AtomicInteger changed = new AtomicInteger();
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
                 .withCacheFactory("/test3", curatorFramework) //
@@ -179,7 +174,7 @@ public class ZkNodeTest {
     }
 
     @Test
-    public void testExists() {
+    void testExists() {
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
                 .withCacheFactory("/test5", curatorFramework) //
                 .withFactory((Function<byte[], String>) String::new) //

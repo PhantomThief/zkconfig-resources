@@ -5,16 +5,16 @@ import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author w.vela
  * Created on 2017-08-25.
  */
-public class ZkBaseTreeNodeExceptionTest extends BaseTest {
+class ZkBaseTreeNodeExceptionTest extends BaseTest {
 
     @Test
-    public void testDisconnect() throws Exception {
+    void testDisconnect() throws Exception {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //

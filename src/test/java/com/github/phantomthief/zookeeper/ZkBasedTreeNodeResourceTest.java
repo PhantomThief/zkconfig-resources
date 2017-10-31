@@ -6,21 +6,20 @@ package com.github.phantomthief.zookeeper;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author w.vela
  */
-public class ZkBasedTreeNodeResourceTest extends BaseTest {
+class ZkBasedTreeNodeResourceTest extends BaseTest {
 
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //
@@ -35,7 +34,7 @@ public class ZkBasedTreeNodeResourceTest extends BaseTest {
     }
 
     @Test
-    public void testClose() throws Exception {
+    void testClose() throws Exception {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //
@@ -45,11 +44,6 @@ public class ZkBasedTreeNodeResourceTest extends BaseTest {
                 .build();
         System.out.println(tree.get());
         tree.close();
-        try {
-            tree.get();
-            fail();
-        } catch (IllegalStateException e) {
-            assertTrue(true);
-        }
+        assertThrows(IllegalStateException.class, tree::get);
     }
 }

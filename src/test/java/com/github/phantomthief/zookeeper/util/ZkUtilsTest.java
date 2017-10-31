@@ -5,7 +5,7 @@ package com.github.phantomthief.zookeeper.util;
 
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.concurrent.TimeUnit.DAYS;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -18,9 +18,9 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.test.TestingServer;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
@@ -30,7 +30,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 /**
  * @author w.vela
  */
-public class ZkUtilsTest {
+class ZkUtilsTest {
 
     private static final int LOOP = 100;
     private static final String TEST_PATH = "/test1/test";
@@ -40,8 +40,8 @@ public class ZkUtilsTest {
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
-    @BeforeClass
-    public static void init() throws Exception {
+    @BeforeAll
+    static void init() throws Exception {
         mapper = new ObjectMapper();
         testingServer = new TestingServer(true);
         curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
@@ -49,8 +49,8 @@ public class ZkUtilsTest {
         curatorFramework.start();
     }
 
-    @AfterClass
-    public static void destroy() throws IOException {
+    @AfterAll
+    static void destroy() throws IOException {
         curatorFramework.close();
         testingServer.close();
     }
@@ -85,13 +85,13 @@ public class ZkUtilsTest {
     }
 
     @Test
-    public void testGetAndSet() throws Exception {
+    void testGetAndSet() {
         ZkUtils.setToZk(curatorFramework, "/1", "2".getBytes());
         assertEquals(ZkUtils.getStringFromZk(curatorFramework, "/1"), "2");
     }
 
     @Test
-    public void testModify() throws Exception {
+    void testModify() throws Exception {
         ZkUtils.changeZkValue(curatorFramework, TEST_PATH, old -> {
             old.add("1");
             return old;
@@ -107,12 +107,12 @@ public class ZkUtilsTest {
     }
 
     @Test
-    public void testConcurrent() throws Exception {
+    void testConcurrent() throws Exception {
         ExecutorService executor = Executors.newFixedThreadPool(100);
         for (int i = 0; i < LOOP; i++) {
             executor.execute(() -> {
-                ZkUtils.changeZkValue(curatorFramework, TEST_PATH2, old -> old + 1,
-                        this::intDecode, this::intEncode);
+                ZkUtils.changeZkValue(curatorFramework, TEST_PATH2, old -> old + 1, this::intDecode,
+                        this::intEncode);
             });
         }
         MoreExecutors.shutdownAndAwaitTermination(executor, 1, DAYS);
@@ -120,7 +120,7 @@ public class ZkUtilsTest {
     }
 
     @Test
-    public void testGetAllChilren() {
+    void testGetAllChilren() {
         ZkUtils.setToZk(curatorFramework, "/all/test1/a", "a".getBytes());
         ZkUtils.setToZk(curatorFramework, "/all/test1/b", "b".getBytes());
         ZkUtils.setToZk(curatorFramework, "/all/test1/b/c", "c".getBytes());

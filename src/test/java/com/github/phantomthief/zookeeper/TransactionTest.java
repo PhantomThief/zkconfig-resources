@@ -13,22 +13,22 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.transaction.CuratorTransactionResult;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.test.TestingServer;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author w.vela
  * Created on 2017-01-04.
  */
-public class TransactionTest {
+class TransactionTest {
 
     private static final String PARENT_PATH = "/test1";
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
     private static CuratorFramework curatorFramework2;
 
-    @BeforeClass
-    public static void init() throws Exception {
+    @BeforeAll
+    static void init() throws Exception {
         testingServer = new TestingServer(true);
         curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
                 new ExponentialBackoffRetry(10000, 20));
@@ -39,7 +39,7 @@ public class TransactionTest {
     }
 
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         curatorFramework.create().forPath(PARENT_PATH);
         String node1 = makePath(PARENT_PATH, "node1");
         String node2 = makePath(PARENT_PATH, "node2");
