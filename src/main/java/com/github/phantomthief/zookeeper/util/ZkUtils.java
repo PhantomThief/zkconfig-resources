@@ -13,6 +13,7 @@ import static org.apache.curator.framework.state.ConnectionState.RECONNECTED;
 import static org.apache.curator.utils.ZKPaths.makePath;
 import static org.apache.zookeeper.CreateMode.EPHEMERAL;
 import static org.apache.zookeeper.CreateMode.PERSISTENT;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +31,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.util.ThrowableFunction;
 
@@ -40,7 +40,7 @@ import com.github.phantomthief.util.ThrowableFunction;
  */
 public class ZkUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(ZkUtils.class);
+    private static final Logger logger = getLogger(ZkUtils.class);
 
     private static final long DEFAULT_WAIT = SECONDS.toMillis(1);
     private static final int INFINITY_LOOP = -1;
