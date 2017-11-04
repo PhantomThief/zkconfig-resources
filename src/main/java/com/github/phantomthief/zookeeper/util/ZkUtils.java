@@ -9,22 +9,28 @@ import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.apache.commons.lang3.StringUtils.removeStart;
+import static org.apache.curator.framework.state.ConnectionState.RECONNECTED;
 import static org.apache.curator.utils.ZKPaths.makePath;
+import static org.apache.zookeeper.CreateMode.EPHEMERAL;
 import static org.apache.zookeeper.CreateMode.PERSISTENT;
-import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.util.ThrowableFunction;
 
@@ -34,7 +40,7 @@ import com.github.phantomthief.util.ThrowableFunction;
  */
 public class ZkUtils {
 
-    private static final Logger logger = getLogger(ZkUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(ZkUtils.class);
 
     private static final long DEFAULT_WAIT = SECONDS.toMillis(1);
     private static final int INFINITY_LOOP = -1;
@@ -74,6 +80,11 @@ public class ZkUtils {
         setToZk(client, path, value, PERSISTENT);
     }
 
+    /**
+     * use {@link #setToZk(CuratorFramework, String, byte[])}
+     * or {@link #createEphemeralNode(CuratorFramework, String, byte[])}
+     */
+    @Deprecated
     public static void setToZk(CuratorFramework client, String path, byte[] value,
             CreateMode createMode) {
         checkNotNull(client);
@@ -101,6 +112,14 @@ public class ZkUtils {
                 throw new RuntimeException(toThrow);
             }
         }
+    }
+
+    public static AutoCloseable createEphemeralNode(CuratorFramework client, String path,
+            byte[] value) throws NodeExistsException {
+        checkNotNull(client);
+        checkNotNull(path);
+        checkNotNull(value);
+        return new KeepEphemeralListener(client, path, value);
     }
 
     public static void removeFromZk(CuratorFramework client, String path) {
@@ -198,6 +217,68 @@ public class ZkUtils {
         } catch (Exception e) {
             throwIfUnchecked(e);
             throw new RuntimeException(e);
+        }
+    }
+
+    static class KeepEphemeralListener implements AutoCloseable, ConnectionStateListener {
+
+        private final CuratorFramework originalClient;
+        private final String path;
+        private final byte[] value;
+
+        @GuardedBy("this")
+        private volatile boolean closed;
+
+        KeepEphemeralListener(CuratorFramework originalClient, String path, byte[] value)
+                throws NodeExistsException {
+            try {
+                originalClient.create().creatingParentsIfNeeded().withMode(EPHEMERAL).forPath(path,
+                        value);
+            } catch (NodeExistsException e) {
+                throw e;
+            } catch (Exception e) {
+                throwIfUnchecked(e);
+                throw new RuntimeException(e);
+            }
+            this.originalClient = originalClient;
+            this.path = path;
+            this.value = value;
+            this.originalClient.getConnectionStateListenable().addListener(this);
+        }
+
+        @Override
+        public void close() throws Exception {
+            synchronized (this) {
+                closed = true;
+                originalClient.getConnectionStateListenable().removeListener(this);
+                try {
+                    originalClient.delete().forPath(path);
+                } catch (NoNodeException e) {
+                    // ignore
+                }
+            }
+        }
+
+        @Override
+        public void stateChanged(CuratorFramework client, ConnectionState newState) {
+            synchronized (this) {
+                if (closed) {
+                    return;
+                }
+                if (newState == RECONNECTED) {
+                    try {
+                        if (originalClient.checkExists().forPath(path) == null) {
+                            logger.info("try recovery ephemeral node for:{}==>{}", path, value);
+                            originalClient.create().creatingParentsIfNeeded().withMode(EPHEMERAL)
+                                    .forPath(path, value);
+                        }
+                    } catch (NodeExistsException e) {
+                        // ignore
+                    } catch (Exception e) {
+                        logger.error("", e);
+                    }
+                }
+            }
         }
     }
 }
