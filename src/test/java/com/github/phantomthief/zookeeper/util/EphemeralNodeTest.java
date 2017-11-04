@@ -27,7 +27,7 @@ class EphemeralNodeTest extends BaseTest {
     void test() throws Exception {
         String path = "/ephemeralNode";
         byte[] value = "test".getBytes();
-        AutoCloseable node = createEphemeralNode(curatorFramework, path, value);
+        EphemeralNode node = createEphemeralNode(curatorFramework, path, value);
         assertArrayEquals(value, getBytesFromZk(curatorFramework, path));
 
         logger.info("kill session.");

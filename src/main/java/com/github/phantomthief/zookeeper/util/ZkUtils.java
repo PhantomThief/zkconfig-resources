@@ -114,7 +114,7 @@ public class ZkUtils {
         }
     }
 
-    public static AutoCloseable createEphemeralNode(CuratorFramework client, String path,
+    public static EphemeralNode createEphemeralNode(CuratorFramework client, String path,
             byte[] value) throws NodeExistsException {
         checkNotNull(client);
         checkNotNull(path);
@@ -220,7 +220,7 @@ public class ZkUtils {
         }
     }
 
-    static class KeepEphemeralListener implements AutoCloseable, ConnectionStateListener {
+    static class KeepEphemeralListener implements EphemeralNode, ConnectionStateListener {
 
         private final CuratorFramework originalClient;
         private final String path;
