@@ -7,6 +7,9 @@ import static com.github.phantomthief.util.MoreSuppliers.lazy;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
 import static com.google.common.base.Throwables.throwIfUnchecked;
+import static com.google.common.util.concurrent.Futures.addCallback;
+import static com.google.common.util.concurrent.Futures.immediateFuture;
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -22,6 +25,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -35,6 +40,9 @@ import org.slf4j.Logger;
 import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -47,6 +55,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final Object lock = new Object();
 
     private final ThrowableBiFunction<byte[], Stat, T, Exception> factory;
+    private final ThrowableBiFunction<byte[], Stat, ListenableFuture<T>, Exception> refreshFactory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final T emptyObject;
@@ -70,6 +79,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     private ZkBasedNodeResource(Builder<T> builder) {
         this.factory = builder.factory;
+        this.refreshFactory = builder.refreshFactory;
         this.cleanup = builder.cleanup;
         this.waitStopPeriod = builder.waitStopPeriod;
         this.emptyObject = builder.emptyObject;
@@ -78,6 +88,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         this.nodeCache = lazy(builder.cacheFactory);
     }
 
+    /**
+     * use {@link #newGenericBuilder()} instead
+     */
+    @Deprecated
     public static Builder<Object> newBuilder() {
         return new Builder<>();
     }
@@ -146,13 +160,27 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                                 oldResource = resource;
                                 if (data != null && data.getData() != null) {
                                     zkNodeExists = true;
-                                    resource = factory.apply(data.getData(), data.getStat());
+                                    ListenableFuture<T> future = refreshFactory
+                                            .apply(data.getData(), data.getStat());
+                                    addCallback(future, new FutureCallback<T>() {
+
+                                        @Override
+                                        public void onSuccess(@Nullable T result) {
+                                            resource = result;
+                                            cleanup(resource, oldResource, cache);
+                                        }
+
+                                        @Override
+                                        public void onFailure(Throwable t) {
+                                            logger.error("", t);
+                                        }
+                                    }, directExecutor());
                                 } else {
                                     zkNodeExists = false;
                                     resource = null;
                                     emptyLogged = false;
+                                    cleanup(resource, oldResource, cache);
                                 }
-                                cleanup(resource, oldResource, cache);
                             }
                         };
                         cache.getListenable().addListener(nodeCacheListener);
@@ -223,16 +251,22 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         return closed;
     }
 
+    /**
+     * use {@link #newGenericBuilder()} instead
+     */
+    @Deprecated
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static final class Builder<E> {
 
         private ThrowableBiFunction<byte[], Stat, E, Exception> factory;
+        private ThrowableBiFunction<byte[], Stat, ListenableFuture<E>, Exception> refreshFactory;
         private Supplier<NodeCache> cacheFactory;
         private Predicate<E> cleanup;
         private long waitStopPeriod;
         private E emptyObject;
         private BiConsumer<E, E> onResourceChange;
         private Runnable nodeCacheShutdown;
+        private ListeningExecutorService refreshExecutor;
 
         /**
          * use {@link #withFactoryEx}
@@ -271,6 +305,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         public <E1> Builder<E1>
                 withFactoryEx(ThrowableFunction<byte[], ? extends E1, Exception> factory) {
             return withFactoryEx((b, s) -> factory.apply(b));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> asyncRefresh(@Nonnull ListeningExecutorService executor) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.refreshExecutor = checkNotNull(executor);
+            return thisBuilder;
         }
 
         /**
@@ -403,6 +444,12 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private void ensure() {
             checkNotNull(factory);
             checkNotNull(cacheFactory);
+            if (refreshExecutor != null) {
+                refreshFactory = (bs, stat) -> refreshExecutor
+                        .submit(() -> factory.apply(bs, stat));
+            } else if (refreshFactory == null) {
+                refreshFactory = (bs, stat) -> immediateFuture(factory.apply(bs, stat));
+            }
 
             if (onResourceChange != null) {
                 BiConsumer<E, E> temp = onResourceChange;
