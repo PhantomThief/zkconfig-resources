@@ -23,6 +23,8 @@ import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource;
 
@@ -31,6 +33,7 @@ import com.github.phantomthief.zookeeper.ZkBasedNodeResource;
  */
 class ZkNodeTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(ZkNodeTest.class);
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
@@ -192,5 +195,26 @@ class ZkNodeTest {
         sleepUninterruptibly(1, SECONDS);
 
         assertFalse(node.zkNode().nodeExists());
+    }
+
+    @Test
+    void testBuildThread() {
+        String path = "/testThread";
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
+                .withCacheFactory(path, curatorFramework) //
+                .withStringFactoryEx(n -> {
+                    logger.info("build:{}=>{}", Thread.currentThread(), n);
+                    return n;
+                }) //
+                .withEmptyObject("EMPTY") //
+                .build();
+        setToZk(curatorFramework, path, "test1".getBytes());
+        node.get();
+        setToZk(curatorFramework, path, "test2".getBytes());
+        sleepUninterruptibly(1, SECONDS);
+        node.get();
+        setToZk(curatorFramework, path, "test3".getBytes());
+        node.get();
+        sleepUninterruptibly(1, SECONDS);
     }
 }
