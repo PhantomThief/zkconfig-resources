@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
@@ -16,6 +17,7 @@ import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource.Builder;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 /**
  * @author w.vela
@@ -42,6 +44,12 @@ public class GenericZkBasedNodeBuilder<T> {
     public GenericZkBasedNodeBuilder<T>
             withFactoryEx(ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
         builder.withFactoryEx(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> asyncRefresh(@Nonnull ListeningExecutorService executor) {
+        builder.asyncRefresh(executor);
         return this;
     }
 

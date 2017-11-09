@@ -37,6 +37,7 @@
     </scm>
 
     <properties>
+        <guava.version>21.0</guava.version>
         <curator.version>4.0.0</curator.version>
 
         <junit-jupiter.version>5.0.1</junit-jupiter.version>
@@ -64,7 +65,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>20.0</version>
+            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

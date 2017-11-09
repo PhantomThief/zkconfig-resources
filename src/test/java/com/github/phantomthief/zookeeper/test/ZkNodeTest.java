@@ -5,7 +5,10 @@ package com.github.phantomthief.zookeeper.test;
 
 import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
 import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
+import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.lang.Thread.currentThread;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -203,7 +206,7 @@ class ZkNodeTest {
         ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
                 .withCacheFactory(path, curatorFramework) //
                 .withStringFactoryEx(n -> {
-                    logger.info("build:{}=>{}", Thread.currentThread(), n);
+                    logger.info("build:{}=>{}", currentThread(), n);
                     return n;
                 }) //
                 .withEmptyObject("EMPTY") //
@@ -216,5 +219,47 @@ class ZkNodeTest {
         setToZk(curatorFramework, path, "test3".getBytes());
         node.get();
         sleepUninterruptibly(1, SECONDS);
+    }
+
+    @Test
+    void testAsyncRefresh() {
+        String path = "/testAsync";
+        String path2 = "/testAsync2";
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
+                .withCacheFactory(path, curatorFramework) //
+                .withStringFactoryEx(n -> {
+                    logger.info("build:{}=>{}", currentThread(), n);
+                    sleepUninterruptibly(2, SECONDS);
+                    return n;
+                }) //
+                .asyncRefresh(listeningDecorator(newSingleThreadScheduledExecutor())) //
+                .withEmptyObject("EMPTY") //
+                .build();
+        ZkBasedNodeResource<String> node2 = ZkBasedNodeResource.<String> newGenericBuilder() //
+                .withCacheFactory(path2, curatorFramework) //
+                .withStringFactoryEx(n -> {
+                    logger.info("build2:{}=>{}", currentThread(), n);
+                    return n;
+                }) //
+                .withEmptyObject("EMPTY") //
+                .build();
+        setToZk(curatorFramework, path, "test1".getBytes());
+        setToZk(curatorFramework, path2, "test1".getBytes());
+        assertEquals("test1", node.get());
+        assertEquals("test1", node2.get());
+
+        setToZk(curatorFramework, path, "test2".getBytes());
+        setToZk(curatorFramework, path2, "test2".getBytes());
+        sleepUninterruptibly(1, SECONDS);
+        assertEquals("test2", node2.get());
+
+        setToZk(curatorFramework, path, "test3".getBytes());
+        setToZk(curatorFramework, path2, "test3".getBytes());
+        assertEquals("test1", node.get());
+        sleepUninterruptibly(2, SECONDS);
+        assertEquals("test2", node.get());
+        assertEquals("test3", node2.get());
+        sleepUninterruptibly(2, SECONDS);
+        assertEquals("test3", node.get());
     }
 }
