@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,12 +16,12 @@ import com.github.phantomthief.util.ThrowableFunction;
  * @author w.vela
  * Created on 2017-09-04.
  */
-public class ZkBaseNodeCloseTest extends BaseTest {
+class ZkBaseNodeCloseTest extends BaseTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ZkBaseNodeCloseTest.class);
 
     @Test
-    public void test() throws InterruptedException {
+    void test() throws InterruptedException {
         boolean[] shutdown = { false };
         ThrowableFunction<String, String, Exception> func = i -> {
             logger.info("found change:{}", i);
@@ -40,12 +38,8 @@ public class ZkBaseNodeCloseTest extends BaseTest {
         setToZk(curatorFramework, "/test", "test2".getBytes());
         SECONDS.sleep(5);
         assertEquals(testNode.get(), "test2");
-        try {
-            testNode.close();
-            shutdown[0] = true;
-        } catch (IOException e) {
-            fail(e.toString());
-        }
+        testNode.close();
+        shutdown[0] = true;
         setToZk(curatorFramework, "/test", "test3".getBytes());
         SECONDS.sleep(10);
         assertThrows(IllegalStateException.class, testNode::get);

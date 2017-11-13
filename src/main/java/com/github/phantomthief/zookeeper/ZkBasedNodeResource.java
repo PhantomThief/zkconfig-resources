@@ -18,6 +18,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -52,7 +53,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedNodeResource.class);
 
-    private final Object lock = new Object();
+    private final ReentrantLock lock = new ReentrantLock();
 
     private final ThrowableBiFunction<byte[], Stat, T, Exception> factory;
     private final ThrowableBiFunction<byte[], Stat, ListenableFuture<T>, Exception> refreshFactory;
@@ -126,7 +127,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
             throw new IllegalStateException("zkNode has been closed.");
         }
         if (resource == null) {
-            synchronized (lock) {
+            lock.lock();
+            try {
                 if (closed) {
                     throw new IllegalStateException("zkNode has been closed.");
                 }
@@ -155,7 +157,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     if (!hasAddListener) {
                         NodeCacheListener nodeCacheListener = () -> {
                             T oldResource;
-                            synchronized (lock) {
+                            boolean addCallback = false;
+                            lock.lock();
+                            try {
                                 ChildData data = cache.getCurrentData();
                                 oldResource = resource;
                                 if (data != null && data.getData() != null) {
@@ -166,20 +170,30 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
                                         @Override
                                         public void onSuccess(@Nullable T result) {
-                                            resource = result;
-                                            cleanup(resource, oldResource, cache);
+                                            try {
+                                                resource = result;
+                                                cleanup(resource, oldResource, cache);
+                                            } finally {
+                                                lock.unlock();
+                                            }
                                         }
 
                                         @Override
                                         public void onFailure(Throwable t) {
                                             logger.error("", t);
+                                            lock.unlock();
                                         }
                                     }, directExecutor());
+                                    addCallback = true;
                                 } else {
                                     zkNodeExists = false;
                                     resource = null;
                                     emptyLogged = false;
                                     cleanup(resource, oldResource, cache);
+                                }
+                            } finally {
+                                if (!addCallback) {
+                                    lock.unlock();
                                 }
                             }
                         };
@@ -189,6 +203,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         hasAddListener = true;
                     }
                 }
+            } finally {
+                lock.unlock();
             }
         }
         return resource;
@@ -232,8 +248,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
-        synchronized (lock) {
+    public void close() {
+        lock.lock();
+        try {
             if (nodeCacheShutdown != null) {
                 nodeCacheShutdown.run();
             }
@@ -244,6 +261,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                 cleanup.test(resource);
             }
             closed = true;
+        } finally {
+            lock.unlock();
         }
     }
 
