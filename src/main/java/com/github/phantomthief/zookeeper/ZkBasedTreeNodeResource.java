@@ -52,7 +52,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedTreeNodeResource.class);
 
-    private final ReentrantLock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock(true);
 
     private final ThrowableFunction<Map<String, ChildData>, T, Exception> factory;
     private final ThrowableFunction<Map<String, ChildData>, ListenableFuture<T>, Exception> refreshFactory;

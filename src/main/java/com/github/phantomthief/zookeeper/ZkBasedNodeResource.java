@@ -53,7 +53,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     private static Logger logger = getLogger(ZkBasedNodeResource.class);
 
-    private final ReentrantLock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock(true);
 
     private final ThrowableBiFunction<byte[], Stat, T, Exception> factory;
     private final ThrowableBiFunction<byte[], Stat, ListenableFuture<T>, Exception> refreshFactory;
