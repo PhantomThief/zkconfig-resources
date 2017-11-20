@@ -42,6 +42,14 @@ class EphemeralNodeTest extends BaseTest {
         listener.stateChanged(curatorFramework, RECONNECTED);
         assertArrayEquals(value, getBytesFromZk(curatorFramework, path));
 
+        byte[] value1 = "test1".getBytes();
+        node.updateValue(value1);
+        assertArrayEquals(value1, getBytesFromZk(curatorFramework, path));
+
+        kill(curatorFramework.getZookeeperClient().getZooKeeper());
+
+        assertArrayEquals(value1, getBytesFromZk(curatorFramework, path));
+
         node.close();
         assertNull(getBytesFromZk(curatorFramework, path));
     }

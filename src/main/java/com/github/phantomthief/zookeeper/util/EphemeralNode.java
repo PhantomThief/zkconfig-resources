@@ -8,5 +8,5 @@ import javax.annotation.Nonnull;
  */
 public interface EphemeralNode extends AutoCloseable { // just for alias
 
-    void setValue(@Nonnull byte[] value);
+    void updateValue(@Nonnull byte[] value);
 }

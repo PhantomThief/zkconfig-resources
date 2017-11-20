@@ -284,8 +284,29 @@ public class ZkUtils {
         }
 
         @Override
-        public void setValue(@Nonnull byte[] value) {
-            this.value = checkNotNull(value);
+        public void updateValue(@Nonnull byte[] value) {
+            synchronized (this) {
+                if (closed) {
+                    return;
+                }
+                this.value = checkNotNull(value);
+                try {
+                    originalClient.setData().forPath(path, value);
+                } catch (NoNodeException e) {
+                    try {
+                        originalClient.create().creatingParentsIfNeeded().withMode(EPHEMERAL)
+                                .forPath(path, value);
+                    } catch (NodeExistsException e1) {
+                        // ignore
+                    } catch (Exception e1) {
+                        throwIfUnchecked(e1);
+                        throw new RuntimeException(e1);
+                    }
+                } catch (Exception e) {
+                    throwIfUnchecked(e);
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 }
