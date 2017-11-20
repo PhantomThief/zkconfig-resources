@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -224,7 +225,8 @@ public class ZkUtils {
 
         private final CuratorFramework originalClient;
         private final String path;
-        private final byte[] value;
+
+        private volatile byte[] value;
 
         @GuardedBy("this")
         private volatile boolean closed;
@@ -279,6 +281,11 @@ public class ZkUtils {
                     }
                 }
             }
+        }
+
+        @Override
+        public void setValue(@Nonnull byte[] value) {
+            this.value = checkNotNull(value);
         }
     }
 }
