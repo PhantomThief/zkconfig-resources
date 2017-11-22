@@ -270,7 +270,7 @@ public class ZkUtils {
                 if (newState == RECONNECTED) {
                     try {
                         if (originalClient.checkExists().forPath(path) == null) {
-                            logger.info("try recovery ephemeral node for:{}==>{}", path, value);
+                            logger.info("try recovery ephemeral node for:{}", path);
                             originalClient.create().creatingParentsIfNeeded().withMode(EPHEMERAL)
                                     .forPath(path, value);
                         }
