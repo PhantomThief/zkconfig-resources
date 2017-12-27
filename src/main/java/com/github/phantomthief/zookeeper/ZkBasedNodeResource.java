@@ -71,6 +71,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private volatile T resource;
 
     @GuardedBy("lock")
+    private volatile boolean emptyLogged = false;
+
+    @GuardedBy("lock")
     private volatile boolean closed = false;
 
     /**
@@ -139,6 +142,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
                         zkNodeExists = NOT_EXISTS;
+                        if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
+                            logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
+                                    emptyObject);
+                            emptyLogged = true;
+                        }
                         return emptyObject;
                     }
                     zkNodeExists = EXISTS;
@@ -190,6 +198,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     } else {
                         zkNodeExists = NOT_EXISTS;
                         resource = null;
+                        emptyLogged = false;
                         cleanup(resource, oldResource, cache);
                     }
                 }
