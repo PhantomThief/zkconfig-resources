@@ -50,7 +50,11 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 public final class ZkBasedNodeResource<T> implements Closeable {
 
-    private static Logger logger = getLogger(ZkBasedNodeResource.class);
+    private static final Logger logger = getLogger(ZkBasedNodeResource.class);
+
+    private static final int UNKNOWN = 0;
+    private static final int EXISTS = 1;
+    private static final int NOT_EXISTS = 2;
 
     private final Object lock = new Object();
 
@@ -72,7 +76,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     @GuardedBy("lock")
     private volatile boolean closed = false;
 
-    private volatile boolean zkNodeExists;
+    /**
+     * {@link #UNKNOWN}, {@link #EXISTS} or {@link #NOT_EXISTS}
+     */
+    private volatile int zkNodeExists = UNKNOWN;
 
     private volatile boolean hasAddListener = false;
     private volatile Runnable nodeCacheRemoveListener;
@@ -118,23 +125,23 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
     public ZkNode<T> zkNode() {
         T t = get();
-        return new ZkNode<>(t, zkNodeExists);
+        return new ZkNode<>(t, zkNodeExists == EXISTS);
     }
 
     public T get() {
-        if (closed) {
-            throw new IllegalStateException("zkNode has been closed.");
-        }
+        checkClosed();
         if (resource == null) {
+            if (zkNodeExists == NOT_EXISTS) { // for performance, short circuit it outside sync block.
+                return emptyObject;
+            }
             synchronized (lock) {
-                if (closed) {
-                    throw new IllegalStateException("zkNode has been closed.");
-                }
+                checkClosed();
                 if (resource == null) {
                     NodeCache cache = nodeCache.get();
+                    tryAddListener(cache);
                     ChildData currentData = cache.getCurrentData();
                     if (currentData == null || currentData.getData() == null) {
-                        zkNodeExists = false;
+                        zkNodeExists = NOT_EXISTS;
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
                             logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
                                     emptyObject);
@@ -142,7 +149,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         }
                         return emptyObject;
                     }
-                    zkNodeExists = true;
+                    zkNodeExists = EXISTS;
                     try {
                         resource = factory.apply(currentData.getData(), currentData.getStat());
                         if (onResourceChange != null) {
@@ -152,46 +159,54 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         throwIfUnchecked(e);
                         throw new RuntimeException(e);
                     }
-                    if (!hasAddListener) {
-                        NodeCacheListener nodeCacheListener = () -> {
-                            T oldResource;
-                            synchronized (lock) {
-                                ChildData data = cache.getCurrentData();
-                                oldResource = resource;
-                                if (data != null && data.getData() != null) {
-                                    zkNodeExists = true;
-                                    ListenableFuture<T> future = refreshFactory
-                                            .apply(data.getData(), data.getStat());
-                                    addCallback(future, new FutureCallback<T>() {
-
-                                        @Override
-                                        public void onSuccess(@Nullable T result) {
-                                            resource = result;
-                                            cleanup(resource, oldResource, cache);
-                                        }
-
-                                        @Override
-                                        public void onFailure(Throwable t) {
-                                            logger.error("", t);
-                                        }
-                                    }, directExecutor());
-                                } else {
-                                    zkNodeExists = false;
-                                    resource = null;
-                                    emptyLogged = false;
-                                    cleanup(resource, oldResource, cache);
-                                }
-                            }
-                        };
-                        cache.getListenable().addListener(nodeCacheListener);
-                        nodeCacheRemoveListener = () -> cache.getListenable()
-                                .removeListener(nodeCacheListener);
-                        hasAddListener = true;
-                    }
                 }
             }
         }
         return resource;
+    }
+
+    private void checkClosed() {
+        if (closed) {
+            throw new IllegalStateException("zkNode has been closed.");
+        }
+    }
+
+    private void tryAddListener(NodeCache cache) {
+        if (!hasAddListener) {
+            NodeCacheListener nodeCacheListener = () -> {
+                T oldResource;
+                synchronized (lock) {
+                    ChildData data = cache.getCurrentData();
+                    oldResource = resource;
+                    if (data != null && data.getData() != null) {
+                        zkNodeExists = EXISTS;
+                        ListenableFuture<T> future = refreshFactory.apply(data.getData(),
+                                data.getStat());
+                        addCallback(future, new FutureCallback<T>() {
+
+                            @Override
+                            public void onSuccess(@Nullable T result) {
+                                resource = result;
+                                cleanup(resource, oldResource, cache);
+                            }
+
+                            @Override
+                            public void onFailure(Throwable t) {
+                                logger.error("", t);
+                            }
+                        }, directExecutor());
+                    } else {
+                        zkNodeExists = NOT_EXISTS;
+                        resource = null;
+                        emptyLogged = false;
+                        cleanup(resource, oldResource, cache);
+                    }
+                }
+            };
+            cache.getListenable().addListener(nodeCacheListener);
+            nodeCacheRemoveListener = () -> cache.getListenable().removeListener(nodeCacheListener);
+            hasAddListener = true;
+        }
     }
 
     private void cleanup(T currentResource, T oldResource, NodeCache nodeCache) {
