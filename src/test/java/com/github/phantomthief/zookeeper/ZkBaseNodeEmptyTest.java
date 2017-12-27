@@ -1,17 +1,18 @@
 package com.github.phantomthief.zookeeper;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
+import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
 import static com.google.common.util.concurrent.MoreExecutors.shutdownAndAwaitTermination;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author w.vela
@@ -19,9 +20,6 @@ import org.slf4j.LoggerFactory;
  */
 class ZkBaseNodeEmptyTest extends BaseTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(ZkBaseNodeEmptyTest.class);
-
-    @Disabled
     @Test
     void test() {
         String path = "/emptyTest";
@@ -31,14 +29,19 @@ class ZkBaseNodeEmptyTest extends BaseTest {
                 .withStringFactoryEx(it -> it) //
                 .withEmptyObject(value) //
                 .build();
-        ExecutorService executorService = newFixedThreadPool(300);
-        for (int i = 0; i < 10000; i++) {
-            executorService.execute(() -> {
-                long s = currentTimeMillis();
-                assertEquals(value, node.get());
-                logger.info("cost:{}", currentTimeMillis() - s);
-            });
+        ExecutorService executorService = newFixedThreadPool(1000);
+        long s1 = currentTimeMillis();
+        for (int i = 0; i < 1000000; i++) {
+            executorService.execute(() -> assertEquals(value, node.get()));
         }
-        shutdownAndAwaitTermination(executorService, 1, TimeUnit.DAYS);
+        shutdownAndAwaitTermination(executorService, 1, DAYS);
+        System.err.println("total cost:" + (currentTimeMillis() - s1));
+        setToZk(curatorFramework, path, "mytest".getBytes());
+        sleepUninterruptibly(1, SECONDS);
+        assertEquals("mytest", node.get());
+
+        removeFromZk(curatorFramework, path);
+        sleepUninterruptibly(1, SECONDS);
+        assertEquals(value, node.get());
     }
 }
