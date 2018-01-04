@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.github.phantomthief.zookeeper.util;
 
 import static com.google.common.base.Throwables.throwIfUnchecked;

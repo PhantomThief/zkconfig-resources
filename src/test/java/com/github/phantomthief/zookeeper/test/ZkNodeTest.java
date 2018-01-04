@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.github.phantomthief.zookeeper.test;
 
 import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
