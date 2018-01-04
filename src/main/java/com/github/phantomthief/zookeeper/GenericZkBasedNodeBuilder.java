@@ -31,6 +31,13 @@ public class GenericZkBasedNodeBuilder<T> {
         this.builder = builder;
     }
 
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T>
+            addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, ?> listener) {
+        builder.addFactoryFailedListener(listener);
+        return this;
+    }
+
     /**
      * use {@link #withFactoryEx}
      */

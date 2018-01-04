@@ -18,8 +18,11 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -66,6 +69,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final BiConsumer<T, T> onResourceChange;
     private final Supplier<NodeCache> nodeCache;
     private final Runnable nodeCacheShutdown;
+    private final Consumer<Throwable> factoryFailedListener;
 
     @GuardedBy("lock")
     private volatile T resource;
@@ -93,6 +97,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         this.onResourceChange = builder.onResourceChange;
         this.nodeCacheShutdown = builder.nodeCacheShutdown;
         this.nodeCache = lazy(builder.cacheFactory);
+        this.factoryFailedListener = t -> {
+            for (ThrowableConsumer<Throwable, ?> failedListener : builder.factoryFailedListeners) {
+                try {
+                    failedListener.accept(t);
+                } catch (Throwable e) {
+                    logger.error("", e);
+                }
+            }
+        };
     }
 
     /**
@@ -156,6 +169,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             onResourceChange.accept(resource, emptyObject);
                         }
                     } catch (Exception e) {
+                        factoryFailedListener.accept(e);
                         throwIfUnchecked(e);
                         throw new RuntimeException(e);
                     }
@@ -192,6 +206,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
                             @Override
                             public void onFailure(Throwable t) {
+                                factoryFailedListener.accept(t);
                                 logger.error("", t);
                             }
                         }, directExecutor());
@@ -282,6 +297,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private BiConsumer<E, E> onResourceChange;
         private Runnable nodeCacheShutdown;
         private ListeningExecutorService refreshExecutor;
+        private List<ThrowableConsumer<Throwable, ?>> factoryFailedListeners = new ArrayList<>();
+
+        @CheckReturnValue
+        public <E1> Builder<E1>
+                addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, ?> listener) {
+            factoryFailedListeners.add(checkNotNull(listener));
+            return (Builder<E1>) this;
+        }
 
         /**
          * use {@link #withFactoryEx}
