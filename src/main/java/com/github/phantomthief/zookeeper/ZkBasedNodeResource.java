@@ -294,11 +294,11 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private BiConsumer<E, E> onResourceChange;
         private Runnable nodeCacheShutdown;
         private ListeningExecutorService refreshExecutor;
-        private List<ThrowableConsumer<Throwable, ?>> factoryFailedListeners = new ArrayList<>();
+        private List<ThrowableConsumer<Throwable, Throwable>> factoryFailedListeners = new ArrayList<>();
 
         @CheckReturnValue
-        public <E1> Builder<E1>
-                addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, ?> listener) {
+        public <E1> Builder<E1> addFactoryFailedListener(
+                @Nonnull ThrowableConsumer<Throwable, Throwable> listener) {
             factoryFailedListeners.add(checkNotNull(listener));
             return (Builder<E1>) this;
         }

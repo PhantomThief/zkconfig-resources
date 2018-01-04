@@ -33,7 +33,7 @@ public class GenericZkBasedNodeBuilder<T> {
 
     @CheckReturnValue
     public GenericZkBasedNodeBuilder<T>
-            addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, ?> listener) {
+            addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, Throwable> listener) {
         builder.addFactoryFailedListener(listener);
         return this;
     }
