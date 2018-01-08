@@ -1,10 +1,8 @@
 package com.github.phantomthief.zookeeper;
 
 import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
-import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.currentThread;
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
@@ -70,7 +68,6 @@ class ZkBasedTreeNodeResourceTest extends BaseTest {
                             .map(String::new) //
                             .collect(joining(","));
                 }) //
-                .asyncRefresh(listeningDecorator(newSingleThreadScheduledExecutor())) //
                 .build();
         ZkBasedTreeNodeResource<String> node2 = ZkBasedTreeNodeResource.<String> newBuilder() //
                 .curator(curatorFramework) //

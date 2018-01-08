@@ -2,9 +2,6 @@ package com.github.phantomthief.zookeeper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.throwIfUnchecked;
-import static com.google.common.util.concurrent.Futures.addCallback;
-import static com.google.common.util.concurrent.Futures.immediateFuture;
-import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -26,8 +23,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -37,9 +32,6 @@ import org.slf4j.Logger;
 
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
@@ -52,7 +44,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private final Object lock = new Object();
 
     private final ThrowableFunction<Map<String, ChildData>, T, Exception> factory;
-    private final ThrowableFunction<Map<String, ChildData>, ListenableFuture<T>, Exception> refreshFactory;
     private final Predicate<T> cleanup;
     private final long waitStopPeriod;
     private final BiConsumer<T, T> onResourceChange;
@@ -72,7 +63,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
     private ZkBasedTreeNodeResource(Builder<T> builder) {
         this.factory = builder.factory;
-        this.refreshFactory = builder.refreshFactory;
         this.cleanup = builder.cleanup;
         this.path = builder.path;
         this.waitStopPeriod = builder.waitStopPeriod;
@@ -143,20 +133,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                             T oldResource;
                             synchronized (lock) {
                                 oldResource = resource;
-                                ListenableFuture<T> future = doRefreshFactory();
-                                addCallback(future, new FutureCallback<T>() {
-
-                                    @Override
-                                    public void onSuccess(@Nullable T result) {
-                                        resource = result;
-                                        cleanup(resource, oldResource);
-                                    }
-
-                                    @Override
-                                    public void onFailure(Throwable t) {
-                                        logger.error("", t);
-                                    }
-                                }, directExecutor());
+                                resource = doFactory();
+                                cleanup(resource, oldResource);
                             }
                         });
                         hasAddListener = true;
@@ -227,12 +205,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         return factory.apply(map);
     }
 
-    private ListenableFuture<T> doRefreshFactory() throws Exception {
-        Map<String, ChildData> map = new HashMap<>();
-        generateFullTree(map, treeCache, path);
-        return refreshFactory.apply(map);
-    }
-
     private void generateFullTree(Map<String, ChildData> map, TreeCache cache, String rootPath) {
         Map<String, ChildData> thisMap = cache.getCurrentChildren(rootPath);
         if (thisMap != null) {
@@ -244,13 +216,11 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     public static final class Builder<E> {
 
         private ThrowableFunction<Map<String, ChildData>, E, Exception> factory;
-        private ThrowableFunction<Map<String, ChildData>, ListenableFuture<E>, Exception> refreshFactory;
         private String path;
         private Supplier<CuratorFramework> curatorFrameworkFactory;
         private Predicate<E> cleanup;
         private long waitStopPeriod;
         private BiConsumer<E, E> onResourceChange;
-        private ListeningExecutorService refreshExecutor;
 
         @CheckReturnValue
         public Builder<E> path(String path) {
@@ -325,12 +295,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
-        public Builder<E> asyncRefresh(@Nonnull ListeningExecutorService executor) {
-            this.refreshExecutor = checkNotNull(executor);
-            return this;
-        }
-
-        @CheckReturnValue
         public Builder<E> cleanup(ThrowableConsumer<E, Throwable> cleanup) {
             this.cleanup = t -> {
                 try {
@@ -364,12 +328,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         private void ensure() {
             checkNotNull(factory);
             checkNotNull(curatorFrameworkFactory);
-
-            if (refreshExecutor != null) {
-                refreshFactory = map -> refreshExecutor.submit(() -> factory.apply(map));
-            } else if (refreshFactory == null) {
-                refreshFactory = map -> immediateFuture(factory.apply(map));
-            }
 
             if (onResourceChange != null) {
                 BiConsumer<E, E> temp = onResourceChange;
