@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
+import static java.lang.Thread.holdsLock;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.commons.lang3.StringUtils.removeStart;
@@ -60,8 +61,6 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     @GuardedBy("lock")
     private volatile boolean closed;
 
-    private volatile boolean hasAddListener = false;
-
     private ZkBasedTreeNodeResource(Builder<T> builder) {
         this.factory = builder.factory;
         this.cleanup = builder.cleanup;
@@ -75,47 +74,55 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         return new Builder<>();
     }
 
-    private TreeCache treeCache() {
+    private void ensureTreeCacheReady() {
+        assert holdsLock(lock);
         if (treeCache == null) {
-            synchronized (lock) {
-                if (treeCache == null) {
-                    try {
-                        CountDownLatch countDownLatch = new CountDownLatch(1);
-                        TreeCache building = TreeCache
-                                .newBuilder(curatorFrameworkFactory.get(), path) //
-                                .setCacheData(true) //
-                                .setExecutor(newSingleThreadExecutor(
-                                        newThreadFactory("TreeCache-[" + path + "]")))
-                                .build();
-                        building.getListenable().addListener((c, e) -> {
-                            if (e.getType() == INITIALIZED) {
-                                countDownLatch.countDown();
-                            }
-                        });
-                        building.start();
-                        countDownLatch.await();
-                        treeCache = building;
-                    } catch (Throwable e) {
-                        throwIfUnchecked(e);
-                        throw new RuntimeException(e);
+            try {
+                CountDownLatch countDownLatch = new CountDownLatch(1);
+                TreeCache building = TreeCache.newBuilder(curatorFrameworkFactory.get(), path) //
+                        .setCacheData(true) //
+                        .setExecutor(newSingleThreadExecutor(
+                                newThreadFactory("TreeCache-[" + path + "]")))
+                        .build();
+                building.getListenable().addListener((c, event) -> {
+                    if (event.getType() == INITIALIZED) {
+                        countDownLatch.countDown();
+                        return;
                     }
-                }
+                    if (countDownLatch.getCount() > 0) {
+                        logger.debug("ignore event before initialized:{}=>{}", event.getType(),
+                                path);
+                        return;
+                    }
+                    if (event.getType() == CONNECTION_SUSPENDED
+                            || event.getType() == CONNECTION_LOST) {
+                        logger.info("ignore event:{} for tree node:{}", event.getType(), path);
+                        return;
+                    }
+                    T oldResource;
+                    synchronized (lock) {
+                        oldResource = resource;
+                        resource = doFactory();
+                        cleanup(resource, oldResource);
+                    }
+                });
+                building.start();
+                countDownLatch.await();
+                treeCache = building;
+            } catch (Throwable e) {
+                throwIfUnchecked(e);
+                throw new RuntimeException(e);
             }
         }
-        return treeCache;
     }
 
     public T get() {
-        if (closed) {
-            throw new IllegalStateException("zkNode has been closed.");
-        }
+        checkClosed();
         if (resource == null) {
             synchronized (lock) {
-                if (closed) {
-                    throw new IllegalStateException("zkNode has been closed.");
-                }
+                checkClosed();
                 if (resource == null) {
-                    TreeCache cache = treeCache();
+                    ensureTreeCacheReady();
                     try {
                         resource = doFactory();
                         if (onResourceChange != null) {
@@ -125,27 +132,16 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         throwIfUnchecked(e);
                         throw new RuntimeException(e);
                     }
-                    if (!hasAddListener) {
-                        cache.getListenable().addListener((zk, event) -> {
-                            if (event.getType() == CONNECTION_SUSPENDED
-                                    || event.getType() == CONNECTION_LOST) {
-                                logger.info("ignore event:{} for tree node:{}", event.getType(),
-                                        path);
-                                return;
-                            }
-                            T oldResource;
-                            synchronized (lock) {
-                                oldResource = resource;
-                                resource = doFactory();
-                                cleanup(resource, oldResource);
-                            }
-                        });
-                        hasAddListener = true;
-                    }
                 }
             }
         }
         return resource;
+    }
+
+    private void checkClosed() {
+        if (closed) {
+            throw new IllegalStateException("zkNode has been closed.");
+        }
     }
 
     private void cleanup(T currentResource, T oldResource) {
