@@ -41,7 +41,7 @@ class ZkBasedTreeNodeResourceTest extends BaseTest {
     }
 
     @Test
-    void testClose() throws Exception {
+    void testClose() {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
                 .<Map<String, String>> newBuilder() //
                 .curator(curatorFramework) //
