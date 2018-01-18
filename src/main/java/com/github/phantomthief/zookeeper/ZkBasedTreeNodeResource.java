@@ -12,7 +12,6 @@ import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.INI
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -183,7 +182,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         synchronized (lock) {
             if (resource != null && cleanup != null) {
                 cleanup.test(resource);

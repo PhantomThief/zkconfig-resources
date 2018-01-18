@@ -6,7 +6,6 @@ import static java.util.stream.Collectors.joining;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -43,12 +42,9 @@ class ZkBaseTreeCloseTest extends BaseTest {
         System.out.println(testNode.get());
         setToZk(curatorFramework, "/test/A", "test2".getBytes());
         SECONDS.sleep(5);
-        try {
-            testNode.close();
-            shutdown[0] = true;
-        } catch (IOException e) {
-            fail(e.toString());
-        }
+        testNode.close();
+        shutdown[0] = true;
+        
         setToZk(curatorFramework, "/test/B", "test3".getBytes());
         SECONDS.sleep(10);
         assertThrows(IllegalStateException.class, testNode::get);

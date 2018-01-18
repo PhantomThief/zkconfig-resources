@@ -259,7 +259,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         synchronized (lock) {
             if (nodeCacheShutdown != null) {
                 nodeCacheShutdown.run();

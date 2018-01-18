@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,12 +38,9 @@ public class ZkBaseNodeCloseTest extends BaseTest {
         setToZk(curatorFramework, "/test", "test2".getBytes());
         SECONDS.sleep(5);
         assertEquals(testNode.get(), "test2");
-        try {
-            testNode.close();
-            shutdown[0] = true;
-        } catch (IOException e) {
-            fail(e.toString());
-        }
+        testNode.close();
+        shutdown[0] = true;
+        
         setToZk(curatorFramework, "/test", "test3".getBytes());
         SECONDS.sleep(10);
         assertThrows(IllegalStateException.class, testNode::get);
