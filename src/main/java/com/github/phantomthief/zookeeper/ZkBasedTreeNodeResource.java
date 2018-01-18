@@ -84,12 +84,11 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         .setExecutor(newSingleThreadExecutor(
                                 newThreadFactory("TreeCache-[" + path + "]")))
                         .build();
-                building.getListenable().addListener((c, e) -> {
-                    if (e.getType() == INITIALIZED) {
-                        countDownLatch.countDown();
-                    }
-                });
                 building.getListenable().addListener((c, event) -> {
+                    if (event.getType() == INITIALIZED) {
+                        countDownLatch.countDown();
+                        return;
+                    }
                     if (countDownLatch.getCount() > 0) {
                         logger.debug("ignore event before initialized:{}=>{}", event.getType(),
                                 path);
