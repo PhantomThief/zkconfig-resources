@@ -4,11 +4,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.commons.lang3.StringUtils.removeStart;
 import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.CONNECTION_LOST;
 import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.CONNECTION_SUSPENDED;
 import static org.apache.curator.framework.recipes.cache.TreeCacheEvent.Type.INITIALIZED;
+import static org.apache.curator.utils.ThreadUtils.newThreadFactory;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
@@ -82,6 +84,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         TreeCache building = TreeCache
                                 .newBuilder(curatorFrameworkFactory.get(), path) //
                                 .setCacheData(true) //
+                                .setExecutor(newSingleThreadExecutor(
+                                        newThreadFactory("TreeCache-[" + path + "]")))
                                 .build();
                         building.getListenable().addListener((c, e) -> {
                             if (e.getType() == INITIALIZED) {
