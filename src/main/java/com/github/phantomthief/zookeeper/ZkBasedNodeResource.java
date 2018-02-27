@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -37,6 +36,7 @@ import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 
+import com.github.phantomthief.util.ThrowableBiConsumer;
 import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
@@ -66,7 +66,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private final BiConsumer<T, T> onResourceChange;
     private final Supplier<NodeCache> nodeCache;
     private final Runnable nodeCacheShutdown;
-    private final Consumer<Throwable> factoryFailedListener;
+    private final BiConsumer<ChildData, Throwable> factoryFailedListener;
 
     @GuardedBy("lock")
     private volatile T resource;
@@ -94,10 +94,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         this.onResourceChange = builder.onResourceChange;
         this.nodeCacheShutdown = builder.nodeCacheShutdown;
         this.nodeCache = lazy(builder.cacheFactory);
-        this.factoryFailedListener = t -> {
-            for (ThrowableConsumer<Throwable, ?> failedListener : builder.factoryFailedListeners) {
+        this.factoryFailedListener = (d, t) -> {
+            for (ThrowableBiConsumer<ChildData, Throwable, ?> failedListener : builder.factoryFailedListeners) {
                 try {
-                    failedListener.accept(t);
+                    failedListener.accept(d, t);
                 } catch (Throwable e) {
                     logger.error("", e);
                 }
@@ -166,7 +166,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             onResourceChange.accept(resource, emptyObject);
                         }
                     } catch (Exception e) {
-                        factoryFailedListener.accept(e);
+                        factoryFailedListener.accept(currentData, e);
                         throwIfUnchecked(e);
                         throw new RuntimeException(e);
                     }
@@ -203,7 +203,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
 
                             @Override
                             public void onFailure(Throwable t) {
-                                factoryFailedListener.accept(t);
+                                factoryFailedListener.accept(data, t);
                                 logger.error("", t);
                             }
                         }, directExecutor());
@@ -294,11 +294,18 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private BiConsumer<E, E> onResourceChange;
         private Runnable nodeCacheShutdown;
         private ListeningExecutorService refreshExecutor;
-        private List<ThrowableConsumer<Throwable, Throwable>> factoryFailedListeners = new ArrayList<>();
+        private List<ThrowableBiConsumer<ChildData, Throwable, Throwable>> factoryFailedListeners = new ArrayList<>();
 
         @CheckReturnValue
         public <E1> Builder<E1> addFactoryFailedListener(
                 @Nonnull ThrowableConsumer<Throwable, Throwable> listener) {
+            checkNotNull(listener);
+            return addFactoryFailedListener((d, t) -> listener.accept(t));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> addFactoryFailedListener(
+                @Nonnull ThrowableBiConsumer<ChildData, Throwable, Throwable> listener) {
             factoryFailedListeners.add(checkNotNull(listener));
             return (Builder<E1>) this;
         }

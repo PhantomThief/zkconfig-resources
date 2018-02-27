@@ -10,9 +10,11 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.zookeeper.data.Stat;
 
+import com.github.phantomthief.util.ThrowableBiConsumer;
 import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
@@ -34,6 +36,13 @@ public class GenericZkBasedNodeBuilder<T> {
     @CheckReturnValue
     public GenericZkBasedNodeBuilder<T>
             addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, Throwable> listener) {
+        builder.addFactoryFailedListener(listener);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> addFactoryFailedListener(
+            @Nonnull ThrowableBiConsumer<ChildData, Throwable, Throwable> listener) {
         builder.addFactoryFailedListener(listener);
         return this;
     }
