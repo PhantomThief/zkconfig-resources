@@ -13,7 +13,7 @@ ZooKeeper节点缓存，基于CuratorFramework封装
 <dependency>
     <groupId>com.github.phantomthief</groupId>
     <artifactId>zkconfig-resources</artifactId>
-    <version>1.1.20</version>
+    <version>1.1.21</version>
 </dependency>
 ```
 
