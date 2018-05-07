@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -133,6 +134,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
     }
 
+    private static String zkConn(CuratorFramework zk) {
+        String result = zk.getZookeeperClient().getCurrentConnectionString();
+        if (StringUtils.isNotBlank(zk.getNamespace())) {
+            result += "[" + zk.getNamespace() + "]";
+        }
+        return result;
+    }
+
     public ZkNode<T> zkNode() {
         T t = get();
         return new ZkNode<>(t, zkNodeExists == EXISTS);
@@ -153,8 +162,8 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     if (currentData == null || currentData.getData() == null) {
                         zkNodeExists = NOT_EXISTS;
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
-                            logger.warn("found no zk path for:{}, using empty data:{}", path(cache),
-                                    emptyObject);
+                            logger.warn("found no zk path for:{}:{}, using empty data:{}",
+                                    zkConn(cache.getClient()), path(cache), emptyObject);
                             emptyLogged = true;
                         }
                         return emptyObject;
