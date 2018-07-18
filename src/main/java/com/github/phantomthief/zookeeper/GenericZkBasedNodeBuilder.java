@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -19,6 +20,7 @@ import com.github.phantomthief.util.ThrowableBiFunction;
 import com.github.phantomthief.util.ThrowableConsumer;
 import com.github.phantomthief.util.ThrowableFunction;
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource.Builder;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 /**
@@ -163,6 +165,94 @@ public class GenericZkBasedNodeBuilder<T> {
     @CheckReturnValue
     public GenericZkBasedNodeBuilder<T> withEmptyObject(T emptyObject) {
         builder.withEmptyObject(emptyObject);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshFactory(
+            @Nonnull ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
+        builder.withRefreshFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshFactory(
+            @Nullable ListeningExecutorService executor,
+            @Nonnull ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
+        builder.withRefreshFactory(executor, factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withAsyncRefreshFactory(
+            @Nonnull ThrowableBiFunction<byte[], Stat, ListenableFuture<T>, Exception> factory) {
+        builder.withAsyncRefreshFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshFactory(
+            @Nonnull ThrowableFunction<byte[], ? extends T, Exception> factory) {
+        builder.withRefreshFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshFactory(
+            @Nullable ListeningExecutorService executor,
+            @Nonnull ThrowableFunction<byte[], ? extends T, Exception> factory) {
+        builder.withRefreshFactory(executor, factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withAsyncRefreshFactory(
+            ThrowableFunction<byte[], ListenableFuture<T>, Exception> factory) {
+        builder.withAsyncRefreshFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
+            @Nonnull ThrowableBiFunction<String, Stat, ? extends T, Exception> factory) {
+        builder.withRefreshStringFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
+            @Nullable ListeningExecutorService executor,
+            @Nonnull ThrowableBiFunction<String, Stat, ? extends T, Exception> factory) {
+        builder.withRefreshStringFactory(executor, factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withAsyncRefreshStringFactory(
+            @Nonnull ThrowableBiFunction<String, Stat, ListenableFuture<T>, Exception> factory) {
+        builder.withAsyncRefreshStringFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
+            @Nonnull ThrowableFunction<String, ? extends T, Exception> factory) {
+        builder.withRefreshStringFactory(factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
+            @Nullable ListeningExecutorService executor,
+            @Nonnull ThrowableFunction<String, ? extends T, Exception> factory) {
+        builder.withRefreshStringFactory(executor, factory);
+        return this;
+    }
+
+    @CheckReturnValue
+    public GenericZkBasedNodeBuilder<T> withAsyncRefreshStringFactory(
+            ThrowableFunction<String, ListenableFuture<T>, Exception> factory) {
+        builder.withAsyncRefreshStringFactory(factory);
         return this;
     }
 
