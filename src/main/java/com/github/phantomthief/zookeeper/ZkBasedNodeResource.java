@@ -324,15 +324,63 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
-        public <E1> Builder<E1> withFactory(BiFunction<byte[], Stat, ? extends E1> factory) {
+        public <E1> Builder<E1>
+                withFactory(@Nonnull BiFunction<byte[], Stat, ? extends E1> factory) {
             return withFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
-        public <E1> Builder<E1>
-                withFactoryEx(ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
+        public <E1> Builder<E1> withFactoryEx(
+                @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.factory = (ThrowableBiFunction<byte[], Stat, E1, Exception>) factory;
+            return thisBuilder;
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshStringFactory(
+                @Nonnull ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
+            return withRefreshStringFactory(null, factory);
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshStringFactory(
+                @Nullable ListeningExecutorService executor,
+                @Nonnull ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
+            return withRefreshFactory(executor,
+                    (b, s) -> factory.apply(b == null ? null : new String(b), s));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshFactory(
+                @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
+            return withRefreshFactory(null, factory);
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshFactory(@Nullable ListeningExecutorService executor,
+                @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            if (executor == null) {
+                thisBuilder.refreshFactory = (b, s) -> immediateFuture(factory.apply(b, s));
+            } else {
+                thisBuilder.refreshFactory = (b, s) -> executor.submit(() -> factory.apply(b, s));
+            }
+            return thisBuilder;
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withAsyncRefreshStringFactory(
+                @Nonnull ThrowableBiFunction<String, Stat, ListenableFuture<E1>, Exception> factory) {
+            return withAsyncRefreshFactory(
+                    (b, s) -> factory.apply(b == null ? null : new String(b), s));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withAsyncRefreshFactory(
+                @Nonnull ThrowableBiFunction<byte[], Stat, ListenableFuture<E1>, Exception> factory) {
+            Builder<E1> thisBuilder = (Builder<E1>) this;
+            thisBuilder.refreshFactory = factory;
             return thisBuilder;
         }
 
@@ -348,14 +396,51 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
-        public <E1> Builder<E1> withFactory(Function<byte[], ? extends E1> factory) {
+        public <E1> Builder<E1> withFactory(@Nonnull Function<byte[], ? extends E1> factory) {
             return withFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
         public <E1> Builder<E1>
-                withFactoryEx(ThrowableFunction<byte[], ? extends E1, Exception> factory) {
+                withFactoryEx(@Nonnull ThrowableFunction<byte[], ? extends E1, Exception> factory) {
             return withFactoryEx((b, s) -> factory.apply(b));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshStringFactory(
+                @Nonnull ThrowableFunction<String, ? extends E1, Exception> factory) {
+            return withRefreshStringFactory(null, factory);
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshStringFactory(
+                @Nullable ListeningExecutorService executor,
+                @Nonnull ThrowableFunction<String, ? extends E1, Exception> factory) {
+            return withRefreshStringFactory(executor, (b, s) -> factory.apply(b));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshFactory(
+                @Nonnull ThrowableFunction<byte[], ? extends E1, Exception> factory) {
+            return withRefreshFactory(null, factory);
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withRefreshFactory(@Nullable ListeningExecutorService executor,
+                @Nonnull ThrowableFunction<byte[], ? extends E1, Exception> factory) {
+            return withRefreshFactory(executor, (b, s) -> factory.apply(b));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withAsyncRefreshStringFactory(
+                ThrowableFunction<String, ListenableFuture<E1>, Exception> factory) {
+            return withAsyncRefreshStringFactory((b, s) -> factory.apply(b));
+        }
+
+        @CheckReturnValue
+        public <E1> Builder<E1> withAsyncRefreshFactory(
+                ThrowableFunction<byte[], ListenableFuture<E1>, Exception> factory) {
+            return withAsyncRefreshFactory((b, s) -> factory.apply(b));
         }
 
         @CheckReturnValue
@@ -495,11 +580,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private void ensure() {
             checkNotNull(factory);
             checkNotNull(cacheFactory);
-            if (refreshExecutor != null) {
-                refreshFactory = (bs, stat) -> refreshExecutor
-                        .submit(() -> factory.apply(bs, stat));
-            } else if (refreshFactory == null) {
-                refreshFactory = (bs, stat) -> immediateFuture(factory.apply(bs, stat));
+            if (refreshFactory == null) {
+                if (refreshExecutor != null) {
+                    refreshFactory = (bs, stat) -> refreshExecutor
+                            .submit(() -> factory.apply(bs, stat));
+                } else {
+                    refreshFactory = (bs, stat) -> immediateFuture(factory.apply(bs, stat));
+                }
             }
 
             if (onResourceChange != null) {
