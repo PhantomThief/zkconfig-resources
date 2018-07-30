@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -222,6 +223,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         private BiConsumer<E, E> onResourceChange;
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> path(String path) {
             this.path = path;
             return this;
@@ -232,11 +234,13 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public Builder<E> factory(Function<Map<String, ChildData>, E> factory) {
             return factoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E>
                 factoryEx(ThrowableFunction<Map<String, ChildData>, E, Exception> factory) {
             this.factory = factory;
@@ -248,11 +252,13 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
          */
         @CheckReturnValue
         @Deprecated
+        @Nonnull
         public Builder<E> childDataFactory(Function<Collection<ChildData>, E> factory) {
             return childDataFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E>
                 childDataFactoryEx(ThrowableFunction<Collection<ChildData>, E, Exception> factory) {
             checkNotNull(factory);
@@ -264,11 +270,13 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public Builder<E> keysFactory(Function<Collection<String>, E> factory) {
             return keysFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E>
                 keysFactoryEx(ThrowableFunction<Collection<String>, E, Exception> factory) {
             checkNotNull(factory);
@@ -276,24 +284,28 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> onResourceChange(BiConsumer<E, E> callback) {
             this.onResourceChange = callback;
             return this;
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> curator(Supplier<CuratorFramework> curatorFactory) {
             this.curatorFrameworkFactory = curatorFactory;
             return this;
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> curator(CuratorFramework curator) {
             this.curatorFrameworkFactory = () -> curator;
             return this;
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> cleanup(ThrowableConsumer<E, Throwable> cleanup) {
             this.cleanup = t -> {
                 try {
@@ -308,17 +320,20 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> cleanup(Predicate<E> cleanup) {
             this.cleanup = cleanup;
             return this;
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> withWaitStopPeriod(long waitStopPeriod) {
             this.waitStopPeriod = waitStopPeriod;
             return this;
         }
 
+        @Nonnull
         public ZkBasedTreeNodeResource<E> build() {
             ensure();
             return new ZkBasedTreeNodeResource<>(this);

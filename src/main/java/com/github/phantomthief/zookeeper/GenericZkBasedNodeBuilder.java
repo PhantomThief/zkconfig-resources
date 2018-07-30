@@ -36,6 +36,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             addFactoryFailedListener(@Nonnull ThrowableConsumer<Throwable, Throwable> listener) {
         builder.addFactoryFailedListener(listener);
@@ -43,6 +44,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> addFactoryFailedListener(
             @Nonnull ThrowableBiConsumer<ChildData, Throwable, Throwable> listener) {
         builder.addFactoryFailedListener(listener);
@@ -54,11 +56,13 @@ public class GenericZkBasedNodeBuilder<T> {
      */
     @Deprecated
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withFactory(BiFunction<byte[], Stat, ? extends T> factory) {
         return withFactoryEx(factory::apply);
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             withFactoryEx(ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
         builder.withFactoryEx(factory);
@@ -66,12 +70,14 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> asyncRefresh(@Nonnull ListeningExecutorService executor) {
         builder.asyncRefresh(executor);
         return this;
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             onResourceChange(BiConsumer<? super T, ? super T> callback) {
         builder.onResourceChange(callback);
@@ -83,11 +89,13 @@ public class GenericZkBasedNodeBuilder<T> {
      */
     @Deprecated
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withFactory(Function<byte[], ? extends T> factory) {
         return withFactoryEx(factory::apply);
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             withFactoryEx(ThrowableFunction<byte[], ? extends T, Exception> factory) {
         return withFactoryEx((b, s) -> factory.apply(b));
@@ -98,12 +106,14 @@ public class GenericZkBasedNodeBuilder<T> {
      */
     @Deprecated
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             withStringFactory(BiFunction<String, Stat, ? extends T> factory) {
         return withStringFactoryEx(factory::apply);
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             withStringFactoryEx(ThrowableBiFunction<String, Stat, ? extends T, Exception> factory) {
         return withFactoryEx((b, s) -> factory.apply(b == null ? null : new String(b), s));
@@ -114,29 +124,34 @@ public class GenericZkBasedNodeBuilder<T> {
      */
     @Deprecated
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withStringFactory(Function<String, ? extends T> factory) {
         return withStringFactoryEx(factory::apply);
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             withStringFactoryEx(ThrowableFunction<String, ? extends T, Exception> factory) {
         return withStringFactoryEx((b, s) -> factory.apply(b));
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withCacheFactory(Supplier<NodeCache> cacheFactory) {
         builder.withCacheFactory(cacheFactory);
         return this;
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withCacheFactory(String path, CuratorFramework curator) {
         builder.withCacheFactory(path, curator);
         return this;
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withCacheFactory(String path,
             Supplier<CuratorFramework> curatorFactory) {
         builder.withCacheFactory(path, curatorFactory);
@@ -144,6 +159,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T>
             withCleanupConsumer(ThrowableConsumer<? super T, Throwable> cleanup) {
         builder.withCleanupConsumer(cleanup);
@@ -151,24 +167,28 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withCleanupPredicate(Predicate<? super T> cleanup) {
         builder.withCleanupPredicate(cleanup);
         return this;
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withWaitStopPeriod(long waitStopPeriod) {
         builder.withWaitStopPeriod(waitStopPeriod);
         return this;
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withEmptyObject(T emptyObject) {
         builder.withEmptyObject(emptyObject);
         return this;
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshFactory(
             @Nonnull ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
         builder.withRefreshFactory(factory);
@@ -176,6 +196,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshFactory(
             @Nullable ListeningExecutorService executor,
             @Nonnull ThrowableBiFunction<byte[], Stat, ? extends T, Exception> factory) {
@@ -184,6 +205,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withAsyncRefreshFactory(
             @Nonnull ThrowableBiFunction<byte[], Stat, ListenableFuture<T>, Exception> factory) {
         builder.withAsyncRefreshFactory(factory);
@@ -191,6 +213,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshFactory(
             @Nonnull ThrowableFunction<byte[], ? extends T, Exception> factory) {
         builder.withRefreshFactory(factory);
@@ -198,6 +221,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshFactory(
             @Nullable ListeningExecutorService executor,
             @Nonnull ThrowableFunction<byte[], ? extends T, Exception> factory) {
@@ -206,6 +230,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withAsyncRefreshFactory(
             ThrowableFunction<byte[], ListenableFuture<T>, Exception> factory) {
         builder.withAsyncRefreshFactory(factory);
@@ -213,6 +238,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
             @Nonnull ThrowableBiFunction<String, Stat, ? extends T, Exception> factory) {
         builder.withRefreshStringFactory(factory);
@@ -220,6 +246,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
             @Nullable ListeningExecutorService executor,
             @Nonnull ThrowableBiFunction<String, Stat, ? extends T, Exception> factory) {
@@ -228,6 +255,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withAsyncRefreshStringFactory(
             @Nonnull ThrowableBiFunction<String, Stat, ListenableFuture<T>, Exception> factory) {
         builder.withAsyncRefreshStringFactory(factory);
@@ -235,6 +263,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
             @Nonnull ThrowableFunction<String, ? extends T, Exception> factory) {
         builder.withRefreshStringFactory(factory);
@@ -242,6 +271,7 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withRefreshStringFactory(
             @Nullable ListeningExecutorService executor,
             @Nonnull ThrowableFunction<String, ? extends T, Exception> factory) {
@@ -250,12 +280,14 @@ public class GenericZkBasedNodeBuilder<T> {
     }
 
     @CheckReturnValue
+    @Nonnull
     public GenericZkBasedNodeBuilder<T> withAsyncRefreshStringFactory(
             ThrowableFunction<String, ListenableFuture<T>, Exception> factory) {
         builder.withAsyncRefreshStringFactory(factory);
         return this;
     }
 
+    @Nonnull
     public ZkBasedNodeResource<T> build() {
         return builder.build();
     }

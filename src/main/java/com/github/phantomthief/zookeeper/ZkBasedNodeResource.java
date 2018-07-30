@@ -110,11 +110,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
      * use {@link #newGenericBuilder()} instead
      */
     @Deprecated
+    @Nonnull
     public static Builder<Object> newBuilder() {
         return new Builder<>();
     }
 
     @CheckReturnValue
+    @Nonnull
     public static <T> GenericZkBasedNodeBuilder<T> newGenericBuilder() {
         return new GenericZkBasedNodeBuilder<>(newBuilder());
     }
@@ -306,6 +308,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private List<ThrowableBiConsumer<ChildData, Throwable, Throwable>> factoryFailedListeners = new ArrayList<>();
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> addFactoryFailedListener(
                 @Nonnull ThrowableConsumer<Throwable, Throwable> listener) {
             checkNotNull(listener);
@@ -313,6 +316,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> addFactoryFailedListener(
                 @Nonnull ThrowableBiConsumer<ChildData, Throwable, Throwable> listener) {
             factoryFailedListeners.add(checkNotNull(listener));
@@ -324,12 +328,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1>
                 withFactory(@Nonnull BiFunction<byte[], Stat, ? extends E1> factory) {
             return withFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withFactoryEx(
                 @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
@@ -338,12 +344,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshStringFactory(
                 @Nonnull ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
             return withRefreshStringFactory(null, factory);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshStringFactory(
                 @Nullable ListeningExecutorService executor,
                 @Nonnull ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
@@ -352,12 +360,14 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshFactory(
                 @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             return withRefreshFactory(null, factory);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshFactory(@Nullable ListeningExecutorService executor,
                 @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
@@ -370,6 +380,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withAsyncRefreshStringFactory(
                 @Nonnull ThrowableBiFunction<String, Stat, ListenableFuture<E1>, Exception> factory) {
             return withAsyncRefreshFactory(
@@ -377,6 +388,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withAsyncRefreshFactory(
                 @Nonnull ThrowableBiFunction<byte[], Stat, ListenableFuture<E1>, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
@@ -385,6 +397,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> onResourceChange(BiConsumer<? super E1, ? super E1> callback) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.onResourceChange = (BiConsumer<E1, E1>) callback;
@@ -396,23 +409,27 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withFactory(@Nonnull Function<byte[], ? extends E1> factory) {
             return withFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1>
                 withFactoryEx(@Nonnull ThrowableFunction<byte[], ? extends E1, Exception> factory) {
             return withFactoryEx((b, s) -> factory.apply(b));
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshStringFactory(
                 @Nonnull ThrowableFunction<String, ? extends E1, Exception> factory) {
             return withRefreshStringFactory(null, factory);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshStringFactory(
                 @Nullable ListeningExecutorService executor,
                 @Nonnull ThrowableFunction<String, ? extends E1, Exception> factory) {
@@ -420,30 +437,35 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshFactory(
                 @Nonnull ThrowableFunction<byte[], ? extends E1, Exception> factory) {
             return withRefreshFactory(null, factory);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withRefreshFactory(@Nullable ListeningExecutorService executor,
                 @Nonnull ThrowableFunction<byte[], ? extends E1, Exception> factory) {
             return withRefreshFactory(executor, (b, s) -> factory.apply(b));
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withAsyncRefreshStringFactory(
                 ThrowableFunction<String, ListenableFuture<E1>, Exception> factory) {
             return withAsyncRefreshStringFactory((b, s) -> factory.apply(b));
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withAsyncRefreshFactory(
                 ThrowableFunction<byte[], ListenableFuture<E1>, Exception> factory) {
             return withAsyncRefreshFactory((b, s) -> factory.apply(b));
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> asyncRefresh(@Nonnull ListeningExecutorService executor) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.refreshExecutor = checkNotNull(executor);
@@ -455,11 +477,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withStringFactory(BiFunction<String, Stat, ? extends E1> factory) {
             return withStringFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withStringFactoryEx(
                 ThrowableBiFunction<String, Stat, ? extends E1, Exception> factory) {
             return withFactoryEx((b, s) -> factory.apply(b == null ? null : new String(b), s));
@@ -470,28 +494,33 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withStringFactory(Function<String, ? extends E1> factory) {
             return withStringFactoryEx(factory::apply);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1>
                 withStringFactoryEx(ThrowableFunction<String, ? extends E1, Exception> factory) {
             return withStringFactoryEx((b, s) -> factory.apply(b));
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> withCacheFactory(Supplier<NodeCache> cacheFactory) {
             this.cacheFactory = cacheFactory;
             return this;
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> withCacheFactory(String path, CuratorFramework curator) {
             return withCacheFactory(path, () -> curator);
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> withCacheFactory(String path, Supplier<CuratorFramework> curatorFactory) {
             this.cacheFactory = () -> {
                 CuratorFramework thisClient = curatorFactory.get();
@@ -523,11 +552,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withCleanup(ThrowableConsumer<? super E1, Throwable> cleanup) {
             return withCleanupConsumer(cleanup);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1>
                 withCleanupConsumer(ThrowableConsumer<? super E1, Throwable> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
@@ -548,11 +579,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
          */
         @Deprecated
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withCleanup(Predicate<? super E1> cleanup) {
             return withCleanupPredicate(cleanup);
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withCleanupPredicate(Predicate<? super E1> cleanup) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.cleanup = (Predicate<E1>) cleanup;
@@ -560,18 +593,21 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         }
 
         @CheckReturnValue
+        @Nonnull
         public Builder<E> withWaitStopPeriod(long waitStopPeriod) {
             this.waitStopPeriod = waitStopPeriod;
             return this;
         }
 
         @CheckReturnValue
+        @Nonnull
         public <E1> Builder<E1> withEmptyObject(E1 emptyObject) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             thisBuilder.emptyObject = emptyObject;
             return thisBuilder;
         }
 
+        @Nonnull
         public <E1> ZkBasedNodeResource<E1> build() {
             ensure();
             return new ZkBasedNodeResource(this);
