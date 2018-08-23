@@ -164,7 +164,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     if (currentData == null || currentData.getData() == null) {
                         zkNodeExists = NOT_EXISTS;
                         if (!emptyLogged) { // 只在刚开始一次或者几次打印这个log
-                            logger.warn("found no zk path for:{}:{}, using empty data:{}",
+                            logger.info("found no zk path for:{}:{}, using empty data:{}",
                                     zkConn(cache.getClient()), path(cache), emptyObject);
                             emptyLogged = true;
                         }
