@@ -2,6 +2,7 @@ package com.github.phantomthief.zookeeper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.throwIfUnchecked;
+import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.MIN_PRIORITY;
 import static java.lang.Thread.holdsLock;
@@ -108,7 +109,7 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                     }
                 });
                 building.start();
-                countDownLatch.await();
+                awaitUninterruptibly(countDownLatch);
                 treeCache = building;
             } catch (Throwable e) {
                 throwIfUnchecked(e);
