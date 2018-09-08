@@ -530,6 +530,10 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                 NodeCache buildingCache = new NodeCache(thisClient, path);
                 try {
                     buildingCache.start();
+                    // not safety check but do it better. due to IE breaks in rebuild.
+                    if (Thread.currentThread().isInterrupted()) {
+                        Thread.interrupted();
+                    }
                     buildingCache.rebuild();
                     this.nodeCacheShutdown = () -> {
                         try {
