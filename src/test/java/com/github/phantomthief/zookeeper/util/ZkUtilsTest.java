@@ -1,5 +1,6 @@
 package com.github.phantomthief.zookeeper.util;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.getAllChildren;
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -117,17 +118,30 @@ class ZkUtilsTest {
     }
 
     @Test
-    void testGetAllChilren() {
+    void testGetAllChildren() {
         ZkUtils.setToZk(curatorFramework, "/all/test1/a", "a".getBytes());
         ZkUtils.setToZk(curatorFramework, "/all/test1/b", "b".getBytes());
         ZkUtils.setToZk(curatorFramework, "/all/test1/b/c", "c".getBytes());
         ZkUtils.setToZk(curatorFramework, "/all/test1/b/c/c1", "c1".getBytes());
         ZkUtils.setToZk(curatorFramework, "/all/test1/b/c/c2", "c2".getBytes());
-        ZkUtils.getAllChildren(curatorFramework, "/all/test1").forEach(System.out::println);
+        getAllChildren(curatorFramework, "/all/test1").forEach(System.out::println);
+        assertEquals(5, getAllChildren(curatorFramework, "/all/test1").count());
         System.out.println("no end /");
-        ZkUtils.getAllChildren(curatorFramework, "/all/test1/").forEach(System.out::println);
+        getAllChildren(curatorFramework, "/all/test1/").forEach(System.out::println);
+        assertEquals(5, getAllChildren(curatorFramework, "/all/test1").count());
         System.out.println("no path");
-        ZkUtils.getAllChildren(curatorFramework, "/all/xyz/").forEach(System.out::println);
+        getAllChildren(curatorFramework, "/all/xyz/").forEach(System.out::println);
+        assertEquals(0, getAllChildren(curatorFramework, "/all/xyz/").count());
+    }
+
+    @Test
+    void testGetAllChildrenShortOut() {
+        ZkUtils.setToZk(curatorFramework, "/all/test2/a", "a".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test2/b", "b".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test2/b/c", "c".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test2/b/c/c1", "c1".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test2/b/c/c2", "c2".getBytes());
+        assertEquals(2, getAllChildren(curatorFramework, "/all/test2").limit(2).count());
     }
 
     private int intDecode(byte[] raw) {
