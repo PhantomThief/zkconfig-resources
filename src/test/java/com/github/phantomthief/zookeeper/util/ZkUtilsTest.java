@@ -1,6 +1,7 @@
 package com.github.phantomthief.zookeeper.util;
 
 import static com.github.phantomthief.zookeeper.util.ZkUtils.getAllChildren;
+import static com.github.phantomthief.zookeeper.util.ZkUtils.getAllChildrenWithData;
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -132,6 +133,23 @@ class ZkUtilsTest {
         System.out.println("no path");
         getAllChildren(curatorFramework, "/all/xyz/").forEach(System.out::println);
         assertEquals(0, getAllChildren(curatorFramework, "/all/xyz/").count());
+    }
+
+    @Test
+    void testGetAllChildrenWithData() {
+        ZkUtils.setToZk(curatorFramework, "/all/test3/a", "a".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test3/b", "b".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test3/b/c", "c".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test3/b/c/c1", "c1".getBytes());
+        ZkUtils.setToZk(curatorFramework, "/all/test3/b/c/c2", "c2".getBytes());
+        getAllChildrenWithData(curatorFramework, "/all/test3").forEach(System.out::println);
+        assertEquals(5, getAllChildrenWithData(curatorFramework, "/all/test3").count());
+        System.out.println("no end /");
+        getAllChildrenWithData(curatorFramework, "/all/test3/").forEach(System.out::println);
+        assertEquals(5, getAllChildrenWithData(curatorFramework, "/all/test3").count());
+        System.out.println("no path");
+        getAllChildrenWithData(curatorFramework, "/all/xyz/").forEach(System.out::println);
+        assertEquals(0, getAllChildrenWithData(curatorFramework, "/all/xyz/").count());
     }
 
     @Test
