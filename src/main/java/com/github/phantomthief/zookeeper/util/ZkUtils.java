@@ -17,13 +17,16 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.zookeeper.CreateMode;
@@ -193,6 +196,48 @@ public class ZkUtils {
         } while (times < retryTimes || retryTimes == INFINITY_LOOP);
         logger.warn("fail to change znode:{}, retry times:{}", path, times);
         return false;
+    }
+    
+    public static Stream<ChildData> getAllChildrenWithData(CuratorFramework curator, String parentPath){
+        String parentPath0 = removeEnd(parentPath, "/");
+        return getAllChildrenWithData0(curator, parentPath0);
+    }
+
+    private static Stream<ChildData> getAllChildrenWithData0(CuratorFramework curator, String parentPath) {
+        try {
+            List<String> children = curator.getChildren().forPath(parentPath);
+            if (children.isEmpty()) {
+                return empty();
+            } else {
+                Stream<ChildData> original = children.stream()
+                        .map(child -> makePath(parentPath, child)) //
+                        .map(path -> toChildData(curator, path)) //
+                        .filter(Objects::nonNull);
+                return concat(original,
+                        children.stream() //
+                                .map(child -> makePath(parentPath, child)) //
+                                .flatMap(path -> getAllChildrenWithData0(curator, path)));
+            }
+        } catch (NoNodeException e) {
+            return empty();
+        } catch (Exception e) {
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
+        }
+    }
+    
+    @Nullable
+    private static ChildData toChildData(CuratorFramework curator, String path) {
+        Stat stat = new Stat();
+        try {
+            byte[] bytes = curator.getData().storingStatIn(stat).forPath(path);
+            return new ChildData(path, stat, bytes);
+        } catch (NoNodeException e) {
+            return null;
+        } catch (Exception e) {
+            throwIfUnchecked(e);
+            throw new RuntimeException(e);
+        }
     }
 
     public static Stream<String> getAllChildren(CuratorFramework curator, String parentPath) {
