@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration scan="true" scanPeriod="10 seconds">
+<configuration scan="true" scanPeriod="10 seconds" debug="false">
 
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level \(%F:%L\) - %msg %n</pattern>
         </encoder>
-        <includeCallerData>true</includeCallerData>
     </appender>
+
+    <logger name="com.github.phantomthief" level="DEBUG"/>
+
+    <logger name="org.apache.curator" level="WARN"/>
+    <logger name="org.apache.zookeeper" level="WARN"/>
 
     <root>
         <appender-ref ref="stdout"/>
         <level value="info"/>
     </root>
+
 </configuration>

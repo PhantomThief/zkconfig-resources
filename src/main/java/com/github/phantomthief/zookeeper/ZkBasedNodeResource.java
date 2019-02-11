@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.util.concurrent.Futures.addCallback;
+import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
@@ -372,7 +373,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                 @Nonnull ThrowableBiFunction<byte[], Stat, ? extends E1, Exception> factory) {
             Builder<E1> thisBuilder = (Builder<E1>) this;
             if (executor == null) {
-                thisBuilder.refreshFactory = (b, s) -> immediateFuture(factory.apply(b, s));
+                thisBuilder.refreshFactory = (b, s) -> {
+                    try {
+                        return immediateFuture(factory.apply(b, s));
+                    } catch (Throwable t) {
+                        return immediateFailedFuture(t);
+                    }
+                };
             } else {
                 thisBuilder.refreshFactory = (b, s) -> executor.submit(() -> factory.apply(b, s));
             }
@@ -625,7 +632,13 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                     refreshFactory = (bs, stat) -> refreshExecutor
                             .submit(() -> factory.apply(bs, stat));
                 } else {
-                    refreshFactory = (bs, stat) -> immediateFuture(factory.apply(bs, stat));
+                    refreshFactory = (bs, stat) -> {
+                        try {
+                            return immediateFuture(factory.apply(bs, stat));
+                        } catch (Throwable t) {
+                            return immediateFailedFuture(t);
+                        }
+                    };
                 }
             }
 
