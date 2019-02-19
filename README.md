@@ -1,4 +1,4 @@
-zkconfig-resources [![Build Status](https://travis-ci.org/PhantomThief/zkconfig-resources.svg)](https://travis-ci.org/PhantomThief/zkconfig-resources)
+zkconfig-resources [![Build Status](https://travis-ci.org/PhantomThief/zkconfig-resources.svg)](https://travis-ci.org/PhantomThief/zkconfig-resources) [![Coverage Status](https://coveralls.io/repos/github/PhantomThief/zkconfig-resources/badge.svg?branch=master)](https://coveralls.io/github/PhantomThief/zkconfig-resources?branch=master)
 =======================
 
 ZooKeeper节点缓存，基于CuratorFramework封装
