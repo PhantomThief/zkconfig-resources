@@ -30,9 +30,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:https://github.com/PhantomThief/zkconfig-resources.git</connection>
+        <connection>scm:git:git@github.com:PhantomThief/zkconfig-resources.git</connection>
         <url>https://github.com/PhantomThief/zkconfig-resources.git</url>
-        <developerConnection>scm:git:https://github.com/PhantomThief/zkconfig-resources.git
+        <developerConnection>scm:git:git@github.com:PhantomThief/zkconfig-resources.git
         </developerConnection>
     </scm>
 
