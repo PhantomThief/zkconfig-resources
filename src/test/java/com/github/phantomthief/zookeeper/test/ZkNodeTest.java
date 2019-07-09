@@ -54,14 +54,14 @@ class ZkNodeTest {
 
     @Test
     void testChange() throws Exception {
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
-                .withCacheFactory("/test", curatorFramework) //
-                .withFactory((Function<byte[], String>) String::new) //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory("/test", curatorFramework)
+                .withFactory((Function<byte[], String>) String::new)
                 .onResourceChange((current, old) -> {
                     System.out.println("current:" + current + ",old:" + old);
                     /*assertEquals(current, "test2");
                     assertEquals(old, "test1");*/
-                }) //
+                })
                 .build();
         System.out.println("current:" + node.get());
         assertEquals(node.get(), "test1");
@@ -75,10 +75,10 @@ class ZkNodeTest {
 
     @Test
     void testEmpty() throws Exception {
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
-                .withCacheFactory("/test2", curatorFramework) //
-                .withFactory((Function<byte[], String>) String::new) //
-                .withEmptyObject("EMPTY") //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder()
+                .withCacheFactory("/test2", curatorFramework)
+                .withFactory((Function<byte[], String>) String::new)
+                .withEmptyObject("EMPTY")
                 .build();
         System.out.println("current:" + node.get());
         assertEquals(node.get(), "EMPTY");
@@ -86,7 +86,7 @@ class ZkNodeTest {
         curatorFramework.create().creatingParentsIfNeeded().forPath("/test2", "haha".getBytes());
         sleepUninterruptibly(1, SECONDS);
         System.out.println("current:" + node.get());
-        assertEquals(node.get(), "haha"); //
+        assertEquals(node.get(), "haha");
 
         sleepUninterruptibly(1, SECONDS);
         curatorFramework.delete().forPath("/test2");
@@ -97,10 +97,10 @@ class ZkNodeTest {
 
     @Test
     void testClosed() throws Exception {
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
-                .withCacheFactory("/test2", curatorFramework) //
-                .withFactory((Function<byte[], String>) String::new) //
-                .withEmptyObject("EMPTY") //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder()
+                .withCacheFactory("/test2", curatorFramework)
+                .withFactory((Function<byte[], String>) String::new)
+                .withEmptyObject("EMPTY")
                 .build();
         assertEquals(node.get(), "EMPTY");
         node.close();
@@ -110,14 +110,14 @@ class ZkNodeTest {
     @Test
     void testDeleteOnChange() throws Exception {
         AtomicInteger changed = new AtomicInteger();
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
-                .withCacheFactory("/test3", curatorFramework) //
-                .withFactory((Function<byte[], String>) String::new) //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder()
+                .withCacheFactory("/test3", curatorFramework)
+                .withFactory((Function<byte[], String>) String::new)
                 .onResourceChange((n, o) -> {
                     System.out.println("old:" + o + ",new:" + n);
                     changed.incrementAndGet();
-                }) //
-                .withEmptyObject("EMPTY") //
+                })
+                .withEmptyObject("EMPTY")
                 .build();
         String value = node.get();
         System.out.println("first empty value:" + value);
@@ -178,10 +178,10 @@ class ZkNodeTest {
 
     @Test
     void testExists() {
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder() //
-                .withCacheFactory("/test5", curatorFramework) //
-                .withFactory((Function<byte[], String>) String::new) //
-                .withEmptyObject("EMPTY") //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.newBuilder()
+                .withCacheFactory("/test5", curatorFramework)
+                .withFactory((Function<byte[], String>) String::new)
+                .withEmptyObject("EMPTY")
                 .build();
 
         assertFalse(node.zkNode().nodeExists());
@@ -200,13 +200,13 @@ class ZkNodeTest {
     @Test
     void testBuildThread() {
         String path = "/testThread";
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx(n -> {
                     logger.info("build:{}=>{}", currentThread(), n);
                     return n;
-                }) //
-                .withEmptyObject("EMPTY") //
+                })
+                .withEmptyObject("EMPTY")
                 .build();
         setToZk(curatorFramework, path, "test1".getBytes());
         node.get();
@@ -222,23 +222,23 @@ class ZkNodeTest {
     void testAsyncRefresh() {
         String path = "/testAsync";
         String path2 = "/testAsync2";
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx(n -> {
                     logger.info("build:{}=>{}", currentThread(), n);
                     sleepUninterruptibly(2, SECONDS);
                     return n;
-                }) //
-                .asyncRefresh(listeningDecorator(newSingleThreadScheduledExecutor())) //
-                .withEmptyObject("EMPTY") //
+                })
+                .asyncRefresh(listeningDecorator(newSingleThreadScheduledExecutor()))
+                .withEmptyObject("EMPTY")
                 .build();
-        ZkBasedNodeResource<String> node2 = ZkBasedNodeResource.<String> newGenericBuilder() //
-                .withCacheFactory(path2, curatorFramework) //
+        ZkBasedNodeResource<String> node2 = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory(path2, curatorFramework)
                 .withStringFactoryEx(n -> {
                     logger.info("build2:{}=>{}", currentThread(), n);
                     return n;
-                }) //
-                .withEmptyObject("EMPTY") //
+                })
+                .withEmptyObject("EMPTY")
                 .build();
         setToZk(curatorFramework, path, "test1".getBytes());
         setToZk(curatorFramework, path2, "test1".getBytes());

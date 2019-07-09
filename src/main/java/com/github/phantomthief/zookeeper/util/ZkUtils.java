@@ -210,12 +210,12 @@ public class ZkUtils {
                 return empty();
             } else {
                 Stream<ChildData> original = children.stream()
-                        .map(child -> makePath(parentPath, child)) //
-                        .map(path -> toChildData(curator, path)) //
+                        .map(child -> makePath(parentPath, child))
+                        .map(path -> toChildData(curator, path))
                         .filter(Objects::nonNull);
                 return concat(original,
-                        children.stream() //
-                                .map(child -> makePath(parentPath, child)) //
+                        children.stream()
+                                .map(child -> makePath(parentPath, child))
                                 .flatMap(path -> getAllChildrenWithData0(curator, path)));
             }
         } catch (NoNodeException e) {
@@ -254,8 +254,8 @@ public class ZkUtils {
                 Stream<String> original = children.stream()
                         .map(child -> makePath(parentPath, child));
                 return concat(original,
-                        children.stream() //
-                                .map(child -> makePath(parentPath, child)) //
+                        children.stream()
+                                .map(child -> makePath(parentPath, child))
                                 .flatMap(path -> getAllChildren0(curator, path)));
             }
         } catch (NoNodeException e) {

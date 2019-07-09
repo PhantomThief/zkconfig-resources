@@ -18,10 +18,10 @@ ZooKeeper节点缓存，基于CuratorFramework封装
 ```
 
 ```Java
-ZkBasedNodeResource<ShardedJedisPool> node = ZkBasedNodeResource.<ShardedJedisPool> newBuilder() //
-                .withCacheFactory(ZKPaths.makePath("/redis", monitorPath), ZkClientHolder::get) //
-                .withStringFactory(this::initObject) //
-                .withCleanup(ShardedJedisPool::close) //
+ZkBasedNodeResource<ShardedJedisPool> node = ZkBasedNodeResource.<ShardedJedisPool> newBuilder()
+                .withCacheFactory(ZKPaths.makePath("/redis", monitorPath), ZkClientHolder::get)
+                .withStringFactory(this::initObject)
+                .withCleanup(ShardedJedisPool::close)
                 .build();
 
 ShardedJedisPool pool = node.get();                

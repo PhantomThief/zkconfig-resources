@@ -16,11 +16,11 @@ class ZkBaseTreeNodeExceptionTest extends BaseTest {
     @Test
     void testDisconnect() throws Exception {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
-                .<Map<String, String>> newBuilder() //
-                .curator(curatorFramework) //
-                .path("/test") //
+                .<Map<String, String>> newBuilder()
+                .curator(curatorFramework)
+                .path("/test")
                 .factoryEx(p -> p.entrySet().stream()
-                        .collect(toMap(Map.Entry::getKey, e -> new String(e.getValue().getData())))) //
+                        .collect(toMap(Map.Entry::getKey, e -> new String(e.getValue().getData()))))
                 .build();
         System.out.println(tree.get());
         System.out.println("stop server.");

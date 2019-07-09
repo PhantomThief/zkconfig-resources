@@ -240,15 +240,15 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                         "[BUG!!!!] should NOT occurred, old resource is same as current, path:{}, {}",
                         path(nodeCache), oldResource);
             } else {
-                new ThreadFactoryBuilder() //
+                new ThreadFactoryBuilder()
                         .setNameFormat("old [" + oldResource.getClass().getSimpleName()
                                 + "] cleanup thread-[%d]")
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
-                                        path(nodeCache), oldResource.getClass().getSimpleName(), e)) //
-                        .setPriority(MIN_PRIORITY) //
-                        .setDaemon(true) //
-                        .build() //
+                                        path(nodeCache), oldResource.getClass().getSimpleName(), e))
+                        .setPriority(MIN_PRIORITY)
+                        .setDaemon(true)
+                        .build()
                         .newThread(() -> {
                             do {
                                 if (waitStopPeriod > 0) {

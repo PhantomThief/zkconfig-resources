@@ -30,9 +30,9 @@ public class ZkBaseNodeCloseTest extends BaseTest {
             }
             return i;
         };
-        ZkBasedNodeResource<String> testNode = ZkBasedNodeResource.<String> newGenericBuilder() //
-                .withCacheFactory("/test", curatorFramework) //
-                .withStringFactoryEx(func) //
+        ZkBasedNodeResource<String> testNode = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory("/test", curatorFramework)
+                .withStringFactoryEx(func)
                 .build();
         assertEquals(testNode.get(), "test1");
         setToZk(curatorFramework, "/test", "test2".getBytes());

@@ -24,10 +24,10 @@ class ZkBaseNodeEmptyTest extends BaseTest {
     void test() {
         String path = "/emptyTest";
         String value = "TEST";
-        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
-                .withStringFactoryEx(it -> it) //
-                .withEmptyObject(value) //
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx(it -> it)
+                .withEmptyObject(value)
                 .build();
         ExecutorService executorService = newFixedThreadPool(1000);
         long s1 = currentTimeMillis();

@@ -81,8 +81,8 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
         if (treeCache == null) {
             try {
                 CountDownLatch countDownLatch = new CountDownLatch(1);
-                TreeCache building = TreeCache.newBuilder(curatorFrameworkFactory.get(), path) //
-                        .setCacheData(true) //
+                TreeCache building = TreeCache.newBuilder(curatorFrameworkFactory.get(), path)
+                        .setCacheData(true)
                         .setExecutor(newSingleThreadExecutor(
                                 newThreadFactory("TreeCache-[" + path + "]")))
                         .build();
@@ -153,15 +153,15 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
                         "[BUG!!!!] should NOT occured, old resource is same as current, path:{}, {}",
                         path, oldResource);
             } else {
-                new ThreadFactoryBuilder() //
+                new ThreadFactoryBuilder()
                         .setNameFormat("old [" + oldResource.getClass().getSimpleName()
                                 + "] cleanup thread-[%d]")
                         .setUncaughtExceptionHandler(
                                 (t, e) -> logger.error("fail to cleanup resource, path:{}, {}",
-                                        path, oldResource.getClass().getSimpleName(), e)) //
-                        .setPriority(MIN_PRIORITY) //
-                        .setDaemon(true) //
-                        .build() //
+                                        path, oldResource.getClass().getSimpleName(), e))
+                        .setPriority(MIN_PRIORITY)
+                        .setDaemon(true)
+                        .build()
                         .newThread(() -> {
                             do {
                                 if (waitStopPeriod > 0) {

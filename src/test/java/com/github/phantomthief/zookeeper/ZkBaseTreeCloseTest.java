@@ -35,9 +35,9 @@ class ZkBaseTreeCloseTest extends BaseTest {
             return result;
         };
         ZkBasedTreeNodeResource<String> testNode = ZkBasedTreeNodeResource.<String> newBuilder()
-                .path("/test") //
-                .curator(curatorFramework) //
-                .factoryEx(func) //
+                .path("/test")
+                .curator(curatorFramework)
+                .factoryEx(func)
                 .build();
         System.out.println(testNode.get());
         setToZk(curatorFramework, "/test/A", "test2".getBytes());

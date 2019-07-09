@@ -45,17 +45,17 @@ class TransactionTest {
         String node2 = makePath(PARENT_PATH, "node2");
         curatorFramework.create().forPath(node1);
         ZkBasedTreeNodeResource<List<String>> zkNode = ZkBasedTreeNodeResource
-                .<List<String>> newBuilder() //
-                .curator(curatorFramework2) //
-                .path(PARENT_PATH) //
-                .keysFactoryEx(this::factory) //
+                .<List<String>> newBuilder()
+                .curator(curatorFramework2)
+                .path(PARENT_PATH)
+                .keysFactoryEx(this::factory)
                 .build();
         System.out.println("first access:" + zkNode.get());
 
-        Collection<CuratorTransactionResult> commit = curatorFramework.inTransaction() //
-                .delete().forPath(node1) //
-                .and().create().forPath(node1, "1".getBytes()) //
-                .and().create().forPath(node2, "2".getBytes()) //
+        Collection<CuratorTransactionResult> commit = curatorFramework.inTransaction()
+                .delete().forPath(node1)
+                .and().create().forPath(node1, "1".getBytes())
+                .and().create().forPath(node2, "2".getBytes())
                 .and().commit();
         System.out.println("result:" + commit);
         sleepUninterruptibly(1, SECONDS);

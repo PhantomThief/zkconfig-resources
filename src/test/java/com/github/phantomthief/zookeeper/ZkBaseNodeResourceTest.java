@@ -29,10 +29,10 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testFailSafe() {
         String path = "/testFailSafe";
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
-                .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt) //
-                .withEmptyObject(EMPTY_VALUE) //
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt)
+                .withEmptyObject(EMPTY_VALUE)
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
@@ -55,12 +55,12 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String path = "/testOriginFactoryFailedListener";
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
-                .withStringFactoryEx(factory) //
-                .withEmptyObject(EMPTY_VALUE) //
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx(factory)
+                .withEmptyObject(EMPTY_VALUE)
                 .withAsyncRefreshStringFactory(s -> immediateFuture(factory.apply(s))) // 构造之前版本的场景
-                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet()) //
+                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet())
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
@@ -83,12 +83,12 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String path = "/testOriginFactoryFailedListenerWithExecutor";
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
-                .withStringFactoryEx(factory) //
-                .withEmptyObject(EMPTY_VALUE) //
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx(factory)
+                .withEmptyObject(EMPTY_VALUE)
                 .withRefreshStringFactory(listeningDecorator(newSingleThreadExecutor()), factory) // 构造之前版本的场景
-                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet()) //
+                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet())
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
@@ -109,11 +109,11 @@ class ZkBaseNodeResourceTest extends BaseTest {
     void testFactoryFailedListener() {
         String path = "/testFactoryFailedListener";
         AtomicInteger counter = new AtomicInteger();
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
-                .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt) //
-                .withEmptyObject(EMPTY_VALUE) //
-                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet()) //
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt)
+                .withEmptyObject(EMPTY_VALUE)
+                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet())
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
@@ -135,12 +135,12 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String path = "/testFactoryFailedListenerWithExecutor";
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder() //
-                .withCacheFactory(path, curatorFramework) //
-                .withStringFactoryEx(factory) //
-                .withEmptyObject(EMPTY_VALUE) //
-                .withRefreshStringFactory(listeningDecorator(newSingleThreadExecutor()), factory) //
-                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet()) //
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx(factory)
+                .withEmptyObject(EMPTY_VALUE)
+                .withRefreshStringFactory(listeningDecorator(newSingleThreadExecutor()), factory)
+                .addFactoryFailedListener((currentData, ex) -> counter.incrementAndGet())
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 

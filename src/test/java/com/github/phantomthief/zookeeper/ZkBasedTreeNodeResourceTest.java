@@ -28,11 +28,11 @@ class ZkBasedTreeNodeResourceTest extends BaseTest {
     @Test
     void test() throws Exception {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
-                .<Map<String, String>> newBuilder() //
-                .curator(curatorFramework) //
-                .path("/test") //
+                .<Map<String, String>> newBuilder()
+                .curator(curatorFramework)
+                .path("/test")
                 .factory(p -> p.entrySet().stream()
-                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
+                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData()))))
                 .build();
         System.out.println(tree.get());
         curatorFramework.setData().forPath("/test/test3/test33", "test34".getBytes());
@@ -43,11 +43,11 @@ class ZkBasedTreeNodeResourceTest extends BaseTest {
     @Test
     void testClose() {
         ZkBasedTreeNodeResource<Map<String, String>> tree = ZkBasedTreeNodeResource
-                .<Map<String, String>> newBuilder() //
-                .curator(curatorFramework) //
-                .path("/test") //
+                .<Map<String, String>> newBuilder()
+                .curator(curatorFramework)
+                .path("/test")
                 .factory(p -> p.entrySet().stream()
-                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData())))) //
+                        .collect(toMap(Entry::getKey, e -> new String(e.getValue().getData()))))
                 .build();
         System.out.println(tree.get());
         tree.close();
@@ -57,28 +57,28 @@ class ZkBasedTreeNodeResourceTest extends BaseTest {
     @Test
     void testAsyncRefresh() {
         String rootPath = "/testAsync";
-        ZkBasedTreeNodeResource<String> node = ZkBasedTreeNodeResource.<String> newBuilder() //
-                .curator(curatorFramework) //
-                .path(rootPath) //
+        ZkBasedTreeNodeResource<String> node = ZkBasedTreeNodeResource.<String> newBuilder()
+                .curator(curatorFramework)
+                .path(rootPath)
                 .factoryEx(map -> {
                     logger.info("build:{}=>{}", currentThread(), map);
                     sleepUninterruptibly(2, SECONDS);
-                    return map.values().stream() //
-                            .map(ChildData::getData) //
-                            .map(String::new) //
+                    return map.values().stream()
+                            .map(ChildData::getData)
+                            .map(String::new)
                             .collect(joining(","));
-                }) //
+                })
                 .build();
-        ZkBasedTreeNodeResource<String> node2 = ZkBasedTreeNodeResource.<String> newBuilder() //
-                .curator(curatorFramework) //
-                .path(rootPath + "2") //
+        ZkBasedTreeNodeResource<String> node2 = ZkBasedTreeNodeResource.<String> newBuilder()
+                .curator(curatorFramework)
+                .path(rootPath + "2")
                 .factoryEx(map -> {
                     logger.info("build2:{}=>{}", currentThread(), map);
-                    return map.values().stream() //
-                            .map(ChildData::getData) //
-                            .map(String::new) //
+                    return map.values().stream()
+                            .map(ChildData::getData)
+                            .map(String::new)
                             .collect(joining(","));
-                }) //
+                })
                 .build();
         String path = makePath(rootPath, "test");
         String path2 = makePath(rootPath + "2", "test");
