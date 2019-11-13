@@ -6,13 +6,19 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.zookeeper.data.Stat;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.util.ThrowableFunction;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 /**
  * ZkBaseNodeResourceTest
@@ -29,18 +35,18 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testFailSafe() {
         String path = "/testFailSafe";
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt)
                 .withEmptyObject(EMPTY_VALUE)
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
-        setToZk(curatorFramework, path, "1".getBytes());
+        setToZk(curatorFramework, path, "1" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(1, node.get().intValue());
 
-        setToZk(curatorFramework, path, "mytest".getBytes());
+        setToZk(curatorFramework, path, "mytest" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         // resource 构造失败后保持了上一次正确的值
         assertEquals(1, node.get().intValue());
@@ -55,7 +61,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String path = "/testOriginFactoryFailedListener";
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx(factory)
                 .withEmptyObject(EMPTY_VALUE)
@@ -64,11 +70,11 @@ class ZkBaseNodeResourceTest extends BaseTest {
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
-        setToZk(curatorFramework, path, "1".getBytes());
+        setToZk(curatorFramework, path, "1" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(0, counter.get());
 
-        setToZk(curatorFramework, path, "mytest".getBytes());
+        setToZk(curatorFramework, path, "mytest" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         // resource 构造失败后没有执行 factoryFailedListener
         assertEquals(0, counter.get());
@@ -83,7 +89,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String path = "/testOriginFactoryFailedListenerWithExecutor";
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx(factory)
                 .withEmptyObject(EMPTY_VALUE)
@@ -92,11 +98,11 @@ class ZkBaseNodeResourceTest extends BaseTest {
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
-        setToZk(curatorFramework, path, "1".getBytes());
+        setToZk(curatorFramework, path, "1" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(0, counter.get());
 
-        setToZk(curatorFramework, path, "mytest".getBytes());
+        setToZk(curatorFramework, path, "mytest" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(1, counter.get());
     }
@@ -109,7 +115,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
     void testFactoryFailedListener() {
         String path = "/testFactoryFailedListener";
         AtomicInteger counter = new AtomicInteger();
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt)
                 .withEmptyObject(EMPTY_VALUE)
@@ -117,11 +123,11 @@ class ZkBaseNodeResourceTest extends BaseTest {
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
-        setToZk(curatorFramework, path, "1".getBytes());
+        setToZk(curatorFramework, path, "1" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(0, counter.get());
 
-        setToZk(curatorFramework, path, "mytest".getBytes());
+        setToZk(curatorFramework, path, "mytest" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(1, counter.get());
     }
@@ -135,7 +141,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String path = "/testFactoryFailedListenerWithExecutor";
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
-        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer>newGenericBuilder()
+        ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx(factory)
                 .withEmptyObject(EMPTY_VALUE)
@@ -144,13 +150,67 @@ class ZkBaseNodeResourceTest extends BaseTest {
                 .build();
         assertEquals(EMPTY_VALUE, node.get().intValue());
 
-        setToZk(curatorFramework, path, "1".getBytes());
+        setToZk(curatorFramework, path, "1" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(0, counter.get());
 
-        setToZk(curatorFramework, path, "mytest".getBytes());
+        setToZk(curatorFramework, path, "mytest" .getBytes());
         sleepUninterruptibly(200, MILLISECONDS);
         assertEquals(1, counter.get());
     }
 
+    @Test
+    void testWatchOnNodeNotExist() throws Throwable {
+
+        ListeningExecutorService executorService = listeningDecorator(Executors.newSingleThreadExecutor());
+
+        String path = "/myco/test/nodeNotExist1";
+        String defaultValue = "default";
+
+        Stat stat = curatorFramework.checkExists().forPath(path);
+        Assertions.assertNull(stat);
+
+        AtomicInteger factoryCallTime = new AtomicInteger(0);
+
+        ZkBasedNodeResource<String> node = ZkBasedNodeResource.<String> newGenericBuilder()
+                .withCacheFactory(path, curatorFramework)
+                .withStringFactoryEx(s -> {
+                    factoryCallTime.incrementAndGet();
+                    return s;
+                })
+                .asyncRefresh(executorService)
+                .withEmptyObject(defaultValue)
+                .build();
+
+        Assertions.assertEquals(defaultValue, node.get());
+        Assertions.assertEquals(0, factoryCallTime.get());
+
+        String dataV1 = "dataV1";
+        curatorFramework.create().orSetData().forPath(path, dataV1.getBytes());
+        Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+
+        Assertions.assertEquals(1, factoryCallTime.get());
+
+        Assertions.assertEquals(dataV1, node.get());
+        Assertions.assertEquals(1, factoryCallTime.get());
+
+        String dataV2 = "dataV2";
+        curatorFramework.create().orSetData().forPath(path, dataV2.getBytes());
+        Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+
+        Assertions.assertEquals(2, factoryCallTime.get());
+
+        Assertions.assertEquals(dataV2, node.get());
+        Assertions.assertEquals(2, factoryCallTime.get());
+
+        curatorFramework.delete().forPath(path);
+        Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+
+        Assertions.assertEquals(2, factoryCallTime.get());
+
+        Assertions.assertEquals(defaultValue, node.get());
+        Assertions.assertEquals(2, factoryCallTime.get());
+
+        executorService.shutdown();
+    }
 }
