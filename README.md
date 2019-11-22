@@ -1,5 +1,8 @@
-zkconfig-resources [![Build Status](https://travis-ci.org/PhantomThief/zkconfig-resources.svg)](https://travis-ci.org/PhantomThief/zkconfig-resources) [![Coverage Status](https://coveralls.io/repos/github/PhantomThief/zkconfig-resources/badge.svg?branch=master)](https://coveralls.io/github/PhantomThief/zkconfig-resources?branch=master)
+zkconfig-resources
 =======================
+[![Build Status](https://travis-ci.org/PhantomThief/zkconfig-resources.svg)](https://travis-ci.org/PhantomThief/zkconfig-resources)
+[![Coverage Status](https://coveralls.io/repos/github/PhantomThief/zkconfig-resources/badge.svg?branch=master)](https://coveralls.io/github/PhantomThief/zkconfig-resources?branch=master)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.phantomthief/zkconfig-resources)](https://search.maven.org/artifact/com.github.phantomthief/zkconfig-resources/)
 
 ZooKeeper节点缓存，基于CuratorFramework封装
 
@@ -8,14 +11,6 @@ ZooKeeper节点缓存，基于CuratorFramework封装
 * 只支持Java8
 
 ## Get Started
-
-```xml
-<dependency>
-    <groupId>com.github.phantomthief</groupId>
-    <artifactId>zkconfig-resources</artifactId>
-    <version>1.1.21</version>
-</dependency>
-```
 
 ```Java
 ZkBasedNodeResource<ShardedJedisPool> node = ZkBasedNodeResource.<ShardedJedisPool> newBuilder()
