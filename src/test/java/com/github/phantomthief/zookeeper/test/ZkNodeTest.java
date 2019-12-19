@@ -173,7 +173,7 @@ class ZkNodeTest {
         assertEquals(value, "abcd");
 
         System.out.println("changed:" + changed.get());
-        assertTrue(changed.get() == 7);
+        assertEquals(7, changed.get());
     }
 
     @Test
