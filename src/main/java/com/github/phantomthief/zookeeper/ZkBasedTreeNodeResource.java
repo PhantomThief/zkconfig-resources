@@ -43,7 +43,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 public final class ZkBasedTreeNodeResource<T> implements Closeable {
 
-    private static Logger logger = getLogger(ZkBasedTreeNodeResource.class);
+    private static final Logger logger = getLogger(ZkBasedTreeNodeResource.class);
 
     private final Object lock = new Object();
 

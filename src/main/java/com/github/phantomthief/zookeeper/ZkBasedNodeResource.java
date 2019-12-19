@@ -306,7 +306,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
         private BiConsumer<E, E> onResourceChange;
         private Runnable nodeCacheShutdown;
         private ListeningExecutorService refreshExecutor;
-        private List<ThrowableBiConsumer<ChildData, Throwable, Throwable>> factoryFailedListeners = new ArrayList<>();
+        private final List<ThrowableBiConsumer<ChildData, Throwable, Throwable>> factoryFailedListeners = new ArrayList<>();
 
         @CheckReturnValue
         @Nonnull
