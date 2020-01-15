@@ -220,6 +220,7 @@ public final class ZkBasedNodeResource<T> implements Closeable {
                             }
                         }, directExecutor());
                     } else {
+                        logger.info("node:[{}] changed to empty:{}", cache.getPath(), data);
                         zkNodeExists = NOT_EXISTS;
                         resource = null;
                         emptyLogged = false;
