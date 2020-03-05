@@ -8,17 +8,16 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.zookeeper.data.Stat;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.github.phantomthief.util.ThrowableFunction;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.Uninterruptibles;
 
 /**
  * ZkBaseNodeResourceTest
@@ -168,7 +167,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
         String defaultValue = "default";
 
         Stat stat = curatorFramework.checkExists().forPath(path);
-        Assertions.assertNull(stat);
+        assertNull(stat);
 
         AtomicInteger factoryCallTime = new AtomicInteger(0);
 
@@ -182,34 +181,34 @@ class ZkBaseNodeResourceTest extends BaseTest {
                 .withEmptyObject(defaultValue)
                 .build();
 
-        Assertions.assertEquals(defaultValue, node.get());
-        Assertions.assertEquals(0, factoryCallTime.get());
+        assertEquals(defaultValue, node.get());
+        assertEquals(0, factoryCallTime.get());
 
         String dataV1 = "dataV1";
-        curatorFramework.create().orSetData().forPath(path, dataV1.getBytes());
-        Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+        curatorFramework.create().orSetData().creatingParentsIfNeeded().forPath(path, dataV1.getBytes());
+        sleepUninterruptibly(1, SECONDS);
 
-        Assertions.assertEquals(1, factoryCallTime.get());
+        assertEquals(1, factoryCallTime.get());
 
-        Assertions.assertEquals(dataV1, node.get());
-        Assertions.assertEquals(1, factoryCallTime.get());
+        assertEquals(dataV1, node.get());
+        assertEquals(1, factoryCallTime.get());
 
         String dataV2 = "dataV2";
         curatorFramework.create().orSetData().forPath(path, dataV2.getBytes());
-        Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+        sleepUninterruptibly(1, SECONDS);
 
-        Assertions.assertEquals(2, factoryCallTime.get());
+        assertEquals(2, factoryCallTime.get());
 
-        Assertions.assertEquals(dataV2, node.get());
-        Assertions.assertEquals(2, factoryCallTime.get());
+        assertEquals(dataV2, node.get());
+        assertEquals(2, factoryCallTime.get());
 
         curatorFramework.delete().forPath(path);
-        Uninterruptibles.sleepUninterruptibly(1, SECONDS);
+        sleepUninterruptibly(1, SECONDS);
 
-        Assertions.assertEquals(2, factoryCallTime.get());
+        assertEquals(2, factoryCallTime.get());
 
-        Assertions.assertEquals(defaultValue, node.get());
-        Assertions.assertEquals(2, factoryCallTime.get());
+        assertEquals(defaultValue, node.get());
+        assertEquals(2, factoryCallTime.get());
 
         executorService.shutdown();
     }
