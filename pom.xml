@@ -51,7 +51,7 @@
         <slf4j-api.version>1.7.22</slf4j-api.version>
         <more-lambdas.version>0.1.8</more-lambdas.version>
 
-        <jackson-databind.version>2.9.10.2</jackson-databind.version>
+        <jackson-databind.version>2.9.10.3</jackson-databind.version>
         <logback-classic.version>1.1.8</logback-classic.version>
 
         <junit.version>5.6.0</junit.version>
