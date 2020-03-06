@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
  */
 public class BaseTest {
 
-    static TestingServer testingServer;
+    protected static TestingServer testingServer;
     protected static CuratorFramework curatorFramework;
 
     @BeforeAll
