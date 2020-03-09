@@ -39,11 +39,14 @@ class ZkUtilsTest {
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
+    private static String otherConnectionStr;
+
     @BeforeAll
     static void init() throws Exception {
         mapper = new ObjectMapper();
         testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
+        curatorFramework = CuratorFrameworkFactory
+                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
                 new ExponentialBackoffRetry(10000, 20));
         curatorFramework.start();
     }

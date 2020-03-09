@@ -1,5 +1,6 @@
 package com.github.phantomthief.zookeeper;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.curator.utils.ZKPaths.makePath;
@@ -27,19 +28,24 @@ class TransactionTest {
     private static CuratorFramework curatorFramework;
     private static CuratorFramework curatorFramework2;
 
+    private static String otherConnectionStr;
+
     @BeforeAll
     static void init() throws Exception {
         testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
-                new ExponentialBackoffRetry(10000, 20));
+        curatorFramework = CuratorFrameworkFactory
+                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
+                        new ExponentialBackoffRetry(10000, 20));
         curatorFramework.start();
-        curatorFramework2 = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
-                new ExponentialBackoffRetry(10000, 20));
+        curatorFramework2 = CuratorFrameworkFactory
+                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
+                        new ExponentialBackoffRetry(10000, 20));
         curatorFramework2.start();
     }
 
     @Test
     void test() throws Exception {
+        removeFromZk(curatorFramework, PARENT_PATH, true);
         curatorFramework.create().forPath(PARENT_PATH);
         String node1 = makePath(PARENT_PATH, "node1");
         String node2 = makePath(PARENT_PATH, "node2");

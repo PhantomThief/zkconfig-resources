@@ -1,5 +1,7 @@
 package com.github.phantomthief.zookeeper;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
+
 import java.io.IOException;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -15,15 +17,18 @@ import org.junit.jupiter.api.BeforeAll;
  */
 public class BaseTest {
 
-    static TestingServer testingServer;
+    protected static TestingServer testingServer;
     protected static CuratorFramework curatorFramework;
+    private static String otherConnectionStr;
 
     @BeforeAll
     public static void init() throws Exception {
         testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
-                new RetryForever(1000));
+        curatorFramework = CuratorFrameworkFactory
+                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
+                        new RetryForever(1000));
         curatorFramework.start();
+        removeFromZk(curatorFramework, "/test", true);
         curatorFramework.create().forPath("/test", "test1".getBytes());
         curatorFramework.create().forPath("/test/test1", "test1".getBytes());
         curatorFramework.create().forPath("/test/test2", "test2".getBytes());

@@ -37,12 +37,18 @@ class ZkNodeTest {
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
+    private static String otherConnectionStr;
+
     @BeforeAll
     static void init() throws Exception {
         testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory.newClient(testingServer.getConnectString(),
+        curatorFramework = CuratorFrameworkFactory
+                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
                 new ExponentialBackoffRetry(10000, 20));
         curatorFramework.start();
+        removeFromZk(curatorFramework, "/test", true);
+        removeFromZk(curatorFramework, "/test2", true);
+        removeFromZk(curatorFramework, "/test3", true);
         curatorFramework.create().forPath("/test", "test1".getBytes());
     }
 

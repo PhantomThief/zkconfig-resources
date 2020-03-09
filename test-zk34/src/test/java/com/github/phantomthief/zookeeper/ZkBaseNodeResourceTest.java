@@ -1,5 +1,6 @@
 package com.github.phantomthief.zookeeper;
 
+import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
 import static com.github.phantomthief.zookeeper.util.ZkUtils.setToZk;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
@@ -34,6 +35,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testFailSafe() {
         String path = "/testFailSafe";
+        removeFromZk(curatorFramework, path, true);
         ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
                 .withStringFactoryEx((ThrowableFunction<String, Integer, Exception>) Integer::parseInt)
@@ -58,6 +60,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testOriginFactoryFailedListener() {
         String path = "/testOriginFactoryFailedListener";
+        removeFromZk(curatorFramework, path, true);
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
         ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
@@ -86,6 +89,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testOriginFactoryFailedListenerWithExecutor() {
         String path = "/testOriginFactoryFailedListenerWithExecutor";
+        removeFromZk(curatorFramework, path, true);
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
         ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
@@ -113,6 +117,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testFactoryFailedListener() {
         String path = "/testFactoryFailedListener";
+        removeFromZk(curatorFramework, path, true);
         AtomicInteger counter = new AtomicInteger();
         ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
                 .withCacheFactory(path, curatorFramework)
@@ -138,6 +143,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
     @Test
     void testFactoryFailedListenerWithExecutor() {
         String path = "/testFactoryFailedListenerWithExecutor";
+        removeFromZk(curatorFramework, path, true);
         AtomicInteger counter = new AtomicInteger();
         ThrowableFunction<String, Integer, Exception> factory = Integer::parseInt;
         ZkBasedNodeResource<Integer> node = ZkBasedNodeResource.<Integer> newGenericBuilder()
@@ -164,6 +170,7 @@ class ZkBaseNodeResourceTest extends BaseTest {
         ListeningExecutorService executorService = listeningDecorator(Executors.newSingleThreadExecutor());
 
         String path = "/myco/test/nodeNotExist1";
+        removeFromZk(curatorFramework, "/myco", true);
         String defaultValue = "default";
 
         Stat stat = curatorFramework.checkExists().forPath(path);
