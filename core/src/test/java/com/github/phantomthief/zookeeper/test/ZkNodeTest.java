@@ -7,6 +7,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.curator.framework.CuratorFrameworkFactory.newClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,8 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.retry.RetryForever;
 import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,10 +41,12 @@ class ZkNodeTest {
 
     @BeforeAll
     static void init() throws Exception {
-        testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory
-                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
-                new ExponentialBackoffRetry(10000, 20));
+        if (otherConnectionStr == null) {
+            testingServer = new TestingServer(true);
+            curatorFramework = newClient(testingServer.getConnectString(), new RetryForever(1000));
+        } else {
+            curatorFramework = newClient(otherConnectionStr, new RetryForever(1000));
+        }
         curatorFramework.start();
         removeFromZk(curatorFramework, "/test", true);
         removeFromZk(curatorFramework, "/test2", true);
@@ -55,7 +57,9 @@ class ZkNodeTest {
     @AfterAll
     static void destroy() throws IOException {
         curatorFramework.close();
-        testingServer.close();
+        if (testingServer != null) {
+            testingServer.close();
+        }
     }
 
     @Test

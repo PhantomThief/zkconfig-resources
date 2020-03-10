@@ -4,6 +4,7 @@ import static com.github.phantomthief.zookeeper.util.ZkUtils.getAllChildren;
 import static com.github.phantomthief.zookeeper.util.ZkUtils.getAllChildrenWithData;
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.concurrent.TimeUnit.DAYS;
+import static org.apache.curator.framework.CuratorFrameworkFactory.newClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -14,8 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.retry.RetryForever;
 import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,17 +44,21 @@ class ZkUtilsTest {
     @BeforeAll
     static void init() throws Exception {
         mapper = new ObjectMapper();
-        testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory
-                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
-                new ExponentialBackoffRetry(10000, 20));
+        if (otherConnectionStr == null) {
+            testingServer = new TestingServer(true);
+            curatorFramework = newClient(testingServer.getConnectString(), new RetryForever(1000));
+        } else {
+            curatorFramework = newClient(otherConnectionStr, new RetryForever(1000));
+        }
         curatorFramework.start();
     }
 
     @AfterAll
     static void destroy() throws IOException {
         curatorFramework.close();
-        testingServer.close();
+        if (testingServer != null) {
+            testingServer.close();
+        }
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
