@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryForever;
 import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.AfterAll;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.github.phantomthief.zookeeper.BaseTest;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -39,17 +41,23 @@ class ZkUtilsTest {
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
-    private static String otherConnectionStr;
+    private static String otherConnectionStr = System.getProperty("zk.other.connectionStr", null);
 
     @BeforeAll
     static void init() throws Exception {
         mapper = new ObjectMapper();
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+            .retryPolicy(new RetryForever(1000));
+        if (BaseTest.isZk34CompatibilityMode()) {
+            builder.zk34CompatibilityMode(true);
+        }
         if (otherConnectionStr == null) {
             testingServer = new TestingServer(true);
-            curatorFramework = newClient(testingServer.getConnectString(), new RetryForever(1000));
+            builder.connectString(testingServer.getConnectString());
         } else {
-            curatorFramework = newClient(otherConnectionStr, new RetryForever(1000));
+            builder.connectString(otherConnectionStr);
         }
+        curatorFramework = builder.build();
         curatorFramework.start();
     }
 
@@ -114,6 +122,7 @@ class ZkUtilsTest {
 
     @Test
     void testConcurrent() throws Exception {
+        ZkUtils.setToZk(curatorFramework, TEST_PATH2, "0".getBytes());
         ExecutorService executor = Executors.newFixedThreadPool(100);
         for (int i = 0; i < LOOP; i++) {
             executor.execute(() -> {

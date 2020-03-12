@@ -28,18 +28,25 @@ class TransactionTest {
     private static CuratorFramework curatorFramework;
     private static CuratorFramework curatorFramework2;
 
-    private static String otherConnectionStr;
+    private static String otherConnectionStr = System.getProperty("zk.other.connectionStr", null);
 
     @BeforeAll
     static void init() throws Exception {
-        testingServer = new TestingServer(true);
-        curatorFramework = CuratorFrameworkFactory
-                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
-                        new ExponentialBackoffRetry(10000, 20));
+        String connectionStr = otherConnectionStr;
+        if (null == connectionStr) {
+            testingServer = new TestingServer(true);
+            connectionStr = testingServer.getConnectString();
+        }
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
+                .connectString(connectionStr)
+                .retryPolicy(new ExponentialBackoffRetry(10000, 20));
+        if (BaseTest.isZk34CompatibilityMode()) {
+            builder.zk34CompatibilityMode(true);
+        }
+        builder.connectString(connectionStr);
+        curatorFramework = builder.build();
         curatorFramework.start();
-        curatorFramework2 = CuratorFrameworkFactory
-                .newClient(otherConnectionStr == null ? testingServer.getConnectString() : otherConnectionStr,
-                        new ExponentialBackoffRetry(10000, 20));
+        curatorFramework2 = builder.build();
         curatorFramework2.start();
     }
 

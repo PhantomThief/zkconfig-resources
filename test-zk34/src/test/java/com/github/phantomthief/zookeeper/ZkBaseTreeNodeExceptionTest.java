@@ -23,14 +23,25 @@ class ZkBaseTreeNodeExceptionTest extends BaseTest {
                         .collect(toMap(Map.Entry::getKey, e -> new String(e.getValue().getData()))))
                 .build();
         System.out.println(tree.get());
-        System.out.println("stop server.");
-        testingServer.stop();
-        System.out.println("after stop.");
-        SECONDS.sleep(20);
-        System.out.println(tree.get());
-        System.out.println("start server.");
-        testingServer.start();
-        System.out.println("after start.");
-        System.out.println(tree.get());
+        try {
+            System.out.println("stop server.");
+            stopTestingServer();
+            System.out.println("after stop.");
+            SECONDS.sleep(20);
+        } catch (UnsupportedOperationException e) {
+            System.out.println("Stop server is not allowed.");
+        } finally {
+            System.out.println(tree.get());
+        }
+
+        try {
+            System.out.println("start server.");
+            startTestingServer();
+            System.out.println("after start.");
+        } catch (UnsupportedOperationException e) {
+            System.out.println("Start server is not allowed.");
+        } finally {
+            System.out.println(tree.get());
+        }
     }
 }
