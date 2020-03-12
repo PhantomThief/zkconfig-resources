@@ -21,3 +21,21 @@ ZkBasedNodeResource<ShardedJedisPool> node = ZkBasedNodeResource.<ShardedJedisPo
 
 ShardedJedisPool pool = node.get();                
 ```
+
+## 使用test-zk34测试兼容性
+
+test-zk34默认会打一个bin二进制包，可以利用二进制包来进行curator，zookeeper-client，zookeeper-server各种版本组合进行兼容性的测试。
+
+```Shell
+# 指定curator和zookeeper-client的版本
+mvn -Dcurator.version=4.2.0 -Dzookeeper.version=3.6.0 clean install -DskipTests
+cd test-zk34/target
+tar -xzvf zkconfig-resources-test-zk34-${version}-bin.tar.gz
+cd zkconfig-resources-test-zk34-${version}-bin
+
+# 连接localhost:2181并运行所有测试，并强制curator使用zk34兼容模式
+TEST_PROP="-Dzk.zk34CompatibilityMode=true" sh bin/run_tests.sh "localhost:2181"
+
+# 没有指定脚本参数，会使用curator-test内置的TestingServer进行测试
+sh bin/run_tests.sh
+```

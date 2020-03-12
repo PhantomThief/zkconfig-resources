@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryForever;
 import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.AfterAll;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.phantomthief.zookeeper.BaseTest;
 import com.github.phantomthief.zookeeper.ZkBasedNodeResource;
 
 /**
@@ -37,16 +39,22 @@ class ZkNodeTest {
     private static TestingServer testingServer;
     private static CuratorFramework curatorFramework;
 
-    private static String otherConnectionStr;
+    private static String otherConnectionStr = System.getProperty("zk.other.connectionStr", null);
 
     @BeforeAll
     static void init() throws Exception {
+        CuratorFrameworkFactory.Builder builder =
+                CuratorFrameworkFactory.builder().retryPolicy(new RetryForever(1000));
+        if (BaseTest.isZk34CompatibilityMode()) {
+            builder.zk34CompatibilityMode(true);
+        }
         if (otherConnectionStr == null) {
             testingServer = new TestingServer(true);
-            curatorFramework = newClient(testingServer.getConnectString(), new RetryForever(1000));
+            builder.connectString(testingServer.getConnectString());
         } else {
-            curatorFramework = newClient(otherConnectionStr, new RetryForever(1000));
+            builder.connectString(otherConnectionStr);
         }
+        curatorFramework = builder.build();
         curatorFramework.start();
         removeFromZk(curatorFramework, "/test", true);
         removeFromZk(curatorFramework, "/test2", true);

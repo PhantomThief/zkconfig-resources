@@ -20,9 +20,12 @@ class EphemeralTest extends BaseTest {
         curatorFramework.create().withMode(EPHEMERAL).forPath(path, value);
         assertArrayEquals(curatorFramework.getData().forPath(path), value);
         System.err.println("test equals.");
-        testingServer.restart();
-        sleepUninterruptibly(3, SECONDS);
-        System.err.println("second...");
-        assertArrayEquals(curatorFramework.getData().forPath(path), value);
+        try {
+            restartTestingServer();
+            sleepUninterruptibly(3, SECONDS);
+            System.err.println("second...");
+            assertArrayEquals(curatorFramework.getData().forPath(path), value);
+        } catch (UnsupportedOperationException e) {
+        }
     }
 }
