@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
 
+
 /**
  * @author w.vela
  * Created on 2020-03-23.
@@ -20,5 +21,10 @@ class TestCreateContainer extends BaseTest {
                 .withMode(EPHEMERAL_SEQUENTIAL)
                 .forPath(path);
         assertNotNull(curatorFramework.getData().forPath(result));
+        String path2 = "/myTest2/lock2";
+        String result2 = curatorFramework.create()
+                .creatingParentsIfNeeded()
+                .forPath(path2);
+        assertNotNull(curatorFramework.getData().forPath(result2));
     }
 }
