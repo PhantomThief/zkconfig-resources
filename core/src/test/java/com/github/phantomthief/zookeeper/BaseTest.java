@@ -1,6 +1,7 @@
 package com.github.phantomthief.zookeeper;
 
 import static com.github.phantomthief.zookeeper.util.ZkUtils.removeFromZk;
+import static org.apache.curator.framework.CuratorFrameworkFactory.builder;
 import static org.apache.curator.framework.CuratorFrameworkFactory.newClient;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ public class BaseTest {
     protected static TestingServer testingServer;
     protected static CuratorFramework curatorFramework;
     private static String otherConnectionStr;
+    private static boolean enableZk34Mode;
 
     @BeforeAll
     public static void init() throws Exception {
@@ -27,7 +29,16 @@ public class BaseTest {
             testingServer = new TestingServer(true);
             curatorFramework = newClient(testingServer.getConnectString(), new RetryForever(1000));
         } else {
-            curatorFramework = newClient(otherConnectionStr, new RetryForever(1000));
+            if (enableZk34Mode) {
+                curatorFramework = builder()
+                        .connectString(otherConnectionStr)
+                        .zk34CompatibilityMode(true)
+                        .dontUseContainerParents()
+                        .retryPolicy(new RetryForever(1000))
+                        .build();
+            } else {
+                curatorFramework = newClient(otherConnectionStr, new RetryForever(1000));
+            }
         }
         curatorFramework.start();
         removeFromZk(curatorFramework, "/test", true);
