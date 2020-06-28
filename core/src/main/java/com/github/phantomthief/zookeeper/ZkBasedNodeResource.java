@@ -237,9 +237,9 @@ public final class ZkBasedNodeResource<T> implements Closeable {
     private void cleanup(T currentResource, T oldResource, NodeCache nodeCache) {
         if (oldResource != null && oldResource != emptyObject) {
             if (currentResource == oldResource) {
-                logger.warn(
+                /*logger.warn(
                         "[BUG!!!!] should NOT occurred, old resource is same as current, path:{}, {}",
-                        path(nodeCache), oldResource);
+                        path(nodeCache), oldResource);*/
             } else {
                 new ThreadFactoryBuilder()
                         .setNameFormat("old [" + oldResource.getClass().getSimpleName()

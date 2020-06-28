@@ -149,9 +149,9 @@ public final class ZkBasedTreeNodeResource<T> implements Closeable {
     private void cleanup(T currentResource, T oldResource) {
         if (oldResource != null) {
             if (currentResource == oldResource) {
-                logger.warn(
+                /*logger.warn(
                         "[BUG!!!!] should NOT occured, old resource is same as current, path:{}, {}",
-                        path, oldResource);
+                        path, oldResource);*/
             } else {
                 new ThreadFactoryBuilder()
                         .setNameFormat("old [" + oldResource.getClass().getSimpleName()
