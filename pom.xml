@@ -43,7 +43,7 @@
     </modules>
 
     <properties>
-        <guava.version>28.1-jre</guava.version>
+        <guava.version>29.0-jre</guava.version>
         <zookeeper.version>3.5.7</zookeeper.version>
         <curator.version>4.1.0</curator.version>
         <jsr305.version>3.0.1</jsr305.version>
