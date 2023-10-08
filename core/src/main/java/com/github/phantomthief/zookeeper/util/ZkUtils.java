@@ -9,6 +9,7 @@ import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.apache.commons.lang3.StringUtils.removeStart;
+import static org.apache.curator.framework.state.ConnectionState.CONNECTED;
 import static org.apache.curator.framework.state.ConnectionState.RECONNECTED;
 import static org.apache.curator.utils.ZKPaths.makePath;
 import static org.apache.zookeeper.CreateMode.EPHEMERAL;
@@ -103,7 +104,7 @@ public class ZkUtils {
             } catch (NoNodeException e) {
                 try {
                     client.create().creatingParentsIfNeeded().withMode(createMode)
-                          .forPath(path, value);
+                            .forPath(path, value);
                     break;
                 } catch (NodeExistsException retry) {
                     continue;
@@ -197,8 +198,8 @@ public class ZkUtils {
         logger.warn("fail to change znode:{}, retry times:{}", path, times);
         return false;
     }
-    
-    public static Stream<ChildData> getAllChildrenWithData(CuratorFramework curator, String parentPath){
+
+    public static Stream<ChildData> getAllChildrenWithData(CuratorFramework curator, String parentPath) {
         String parentPath0 = removeEnd(parentPath, "/");
         return getAllChildrenWithData0(curator, parentPath0);
     }
@@ -225,7 +226,7 @@ public class ZkUtils {
             throw new RuntimeException(e);
         }
     }
-    
+
     @Nullable
     private static ChildData toChildData(CuratorFramework curator, String path) {
         Stat stat = new Stat();
@@ -268,8 +269,10 @@ public class ZkUtils {
 
     static class KeepEphemeralListener implements EphemeralNode, ConnectionStateListener {
 
+        private static final long UNKNOWN_SESSION_ID = -1L;
         private final CuratorFramework originalClient;
         private final String path;
+        private long lastSessionId;
 
         private volatile byte[] value;
 
@@ -312,7 +315,18 @@ public class ZkUtils {
                 if (closed) {
                     return;
                 }
-                if (newState == RECONNECTED) {
+
+                long sessionId = UNKNOWN_SESSION_ID;
+                try {
+                    sessionId = client.getZookeeperClient().getZooKeeper().getSessionId();
+                } catch (Exception e) {
+                    logger.warn("Curator client state changed, but failed to get the related zk session instance.");
+                }
+
+                if (newState == CONNECTED) {
+                    lastSessionId = sessionId;
+                    logger.info("Curator zookeeper client instance initiated successfully, session id is " + sessionId);
+                } else if (newState == RECONNECTED) {
                     try {
                         if (originalClient.checkExists().forPath(path) == null) {
                             logger.info("try recovery ephemeral node for:{}", path);
@@ -320,7 +334,24 @@ public class ZkUtils {
                                     .forPath(path, value);
                         }
                     } catch (NodeExistsException e) {
-                        // ignore
+                        logger.warn("node exists when new state is RECONNECTED and try to recovery ephemeral node");
+                        if (lastSessionId == sessionId && sessionId != UNKNOWN_SESSION_ID) {
+                            logger.warn("Curator zookeeper connection recovered from connection lose, "
+                                    + "reuse the old session " + Long.toHexString(sessionId));
+                        } else {
+                            logger.warn("New session created after old session lost, "
+                                    + "old session " + Long.toHexString(lastSessionId)
+                                    + ", new session " + Long.toHexString(sessionId));
+                            lastSessionId = sessionId;
+                            try {
+                                originalClient.delete().forPath(path);
+                                originalClient.create().creatingParentsIfNeeded().withMode(EPHEMERAL)
+                                        .forPath(path, value);
+                            } catch (Exception exception) {
+                                logger.error("delete old ephemeral node and create new ephemeral node failed, ",
+                                        exception.getMessage());
+                            }
+                        }
                     } catch (Exception e) {
                         logger.error("", e);
                     }
